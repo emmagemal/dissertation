@@ -9,44 +9,37 @@ library(tidyverse)
 fulldata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
 str(fulldata)
 
-np_only <- fulldata[fulldata$type == "NP", ]  # don't think I need
-dr_only <- fulldata[fulldata$type == "DR", ]  # don't think I need 
+fulldata <- fulldata %>% 
+              mutate(treatment_type = as.factor(treatment_type),
+                     type = as.factor(type))
+str(fulldata)
 
-
-# initial temperature curve plots
+# temperature curve plots
 (all_plot <- ggplot(fulldata, aes(x = temp, y = avgDW)) +
                 geom_point(aes(color = treatment_type, shape = type), 
                            size = 2.5, alpha = 0.85))
 
 (facet_plot <- ggplot(fulldata, aes(x = temp, y = avgDW)) +
+                  geom_hline(yintercept = 0, color = "white", size = 1.5) +  # optional to keep              
                   geom_point(aes(shape = treatment_type, color = treatment_type),
                              size = 2) +
                   geom_line(aes(color = treatment_type)) +
                   facet_wrap(vars(type), nrow = 1) +
                   geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW,
                                     color = treatment_type),
-                                width = 0.3))  # USE THIS ONE I THINK! 
-
-(np_plot <- ggplot(np_only, aes(x = temp, y = avgDW)) +
-                geom_line(aes(color = treatment_type)) +
-                geom_point(aes(color = treatment_type)))
-
-(dr_plot <- ggplot(dr_only, aes(x = temp, y = avgDW)) +
-                geom_line(aes(color = treatment_type))+
-                geom_point(aes(color = treatment_type)))
+                                width = 0.5))  # USE THIS ONE I THINK! 
 # respiration has acclimated to remain exactly the same as the control!! 
 
-
 # using chlorophyll data instead
-(np_chl_plot <- ggplot(np_only, aes(x = temp, y = avgChl)) +
-                  geom_line(aes(color = treatment_type)) +
-                  geom_point(aes(color = treatment_type)))
-
-(dr_chl_plot <- ggplot(dr_only, aes(x = temp, y = avgChl)) +
-                  geom_line(aes(color = treatment_type)) +
-                  geom_point(aes(color = treatment_type)))
-
+(facet_plot_chl <- ggplot(fulldata, aes(x = temp, y = avgChl)) +
+                      geom_hline(yintercept = 0, color = "white", size = 1.5) +  # optional to keep              
+                      geom_point(aes(shape = treatment_type, color = treatment_type),
+                                 size = 2) +
+                      geom_line(aes(color = treatment_type)) +
+                      facet_wrap(vars(type), nrow = 1))
 # basically the same relationship, which is good! Slightly different values of course 
+# use to show that the relationship is the same, and explain that DW is used throughout
+  # in order to allow scaling and comparison with other vegetation types 
 
 
 ## Carbon Gain Efficiency ----
@@ -138,8 +131,24 @@ light <- light %>%
                          names_prefix = "avgCO2_",
                          values_to = "avgCO2")
 
+light_control <- light %>% 
+                  filter(treatment_type == "control")
+light_treatment <- light %>% 
+                      filter(treatment_type == "treatment")
+
 # plotting the light response curves
 (light_plots <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
                   geom_point() +
                   geom_line() +
                   facet_wrap(vars(treatment_type)))
+
+## OR do (probably best not to include the lines tbh... shows inaccuracy in estimates)
+(light_plots_c <- ggplot(light_control, aes(x = Lcuv, y = avgCO2)) +
+                    geom_vline(xintercept = 780, size = 20, alpha = 0.3) +                
+                    geom_point() +
+                    geom_line()) 
+(light_plots_t <- ggplot(light_treatment, aes(x = Lcuv, y = avgCO2)) +
+                    geom_vline(xintercept = 400, size = 20, alpha = 0.3) +                
+                    geom_point() +
+                    geom_line()) 
+  
