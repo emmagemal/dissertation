@@ -1,4 +1,4 @@
-# Initial Data Manipulation and Test Plots (PLOT SCRIPT ONLY, NOT STATS)
+# Test Plots (PLOT SCRIPT ONLY, NOT STATS)
 # Emma Gemal, s1758915@sms.ed.ac.uk
 # University of Edinburgh 
 
@@ -24,7 +24,7 @@ str(fulldata)
                   geom_point(aes(shape = treatment_type, color = treatment_type),
                              size = 2) +
                   geom_line(aes(color = treatment_type)) +
-                  facet_wrap(vars(type), nrow = 1) +
+                  facet_wrap(~type, nrow = 1) +
                   geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW,
                                     color = treatment_type),
                                 width = 0.5))  # USE THIS ONE I THINK! 
@@ -36,7 +36,7 @@ str(fulldata)
                       geom_point(aes(shape = treatment_type, color = treatment_type),
                                  size = 2) +
                       geom_line(aes(color = treatment_type)) +
-                      facet_wrap(vars(type), nrow = 1))
+                      facet_wrap(~type, nrow = 1))
 # basically the same relationship, which is good! Slightly different values of course 
 # use to show that the relationship is the same, and explain that DW is used throughout
   # in order to allow scaling and comparison with other vegetation types 
@@ -89,7 +89,7 @@ cgain_combo <- full_join(treatment_long_combo, control_long_combo)
 
 (stacked_both <- ggplot(cgain_combo, aes(x = temp, y = percent, fill = type)) +
                     geom_bar(position = "fill", stat = "identity") +
-                    facet_wrap(vars(treatment_type), nrow = 1))  # USE THIS I THINK!
+                    facet_wrap(~treatment_type, nrow = 1))  # USE THIS I THINK!
 
 # change in ratio between respiration and (gross) photosynthesis 
 (dr_gp_plot <- ggplot(cgain, aes(x = temp, y = DRratio_DW)) +
@@ -140,7 +140,7 @@ light_treatment <- light %>%
 (light_plots <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
                   geom_point() +
                   geom_line() +
-                  facet_wrap(vars(treatment_type)))
+                  facet_wrap(~treatment_type))
 
 ## OR do (probably best not to include the lines tbh... shows inaccuracy in estimates)
 (light_plots_c <- ggplot(light_control, aes(x = Lcuv, y = avgCO2)) +
