@@ -7,6 +7,7 @@ library(tidyverse)
 library(retistruct)
 library(lmtest)
 library(lme4)
+library(car)
 
 ### Data Manipulation ----
 fulldata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
@@ -109,36 +110,45 @@ line.line.intersection(t1_neg, t2_neg, treatment_y_neg,
 
 shapiro.test(fulldata$avgDW)   # p > 0.05, it IS normally distributed 
 
-
-# creating some linear models from initial data
+## Simple linear models 
 null <- lm(avgDW ~ 1, data = fulldata)
+temp <- lm(avgDW ~ temp, data = fulldata)
+treatment <- lm(avgDW ~ treatment_type, data = fulldata)
 temp_ttype <- lm(avgDW ~ temp + treatment_type, data = fulldata)
+temp_type <- lm(avgDW ~ temp + type, data = fulldata)
 temp_ttype_type <- lm(avgDW ~ temp + treatment_type + type, data = fulldata)
 temp_ttype_int <- lm(avgDW ~ temp*treatment_type, data = fulldata)
+temp_type_int <- lm(avgDW ~ temp*type, data = fulldata)
 temp_ttype_type_int <- lm(avgDW ~ temp + treatment_type*type, data = fulldata)
 temp_ttype_int_type <- lm(avgDW ~ temp*treatment_type + type, data = fulldata)
 all_int <- lm(avgDW ~ temp*treatment_type*type, data = fulldata)
 
-AIC(null, temp_ttype, temp_ttype_type, temp_ttype_int, temp_ttype_type_int, 
-    temp_ttype_int_type, all_int)
+AIC(null, treatment, temp, temp_ttype, temp_type, temp_ttype_type, temp_ttype_int, 
+    temp_type_int, temp_ttype_type_int, temp_ttype_int_type, all_int)
 # all_int is the best model of these 
 
-# checking model assumptions
-anova(all_int)   # some significant interaction terms = violates assumptions, can't use 
-
+# checking model assumptions 
 hist(residuals(all_int))   
 shapiro.test(residuals(all_int))  # residuals are normally distributed 
 
-plot(all_int)    # non-linear relationship present 
+plot(all_int)    # potential non-linear relationship present 
 bptest(all_int)  # no heteroskedasticity in the model 
 
 
-# running basic ANCOVAs on NP and DR separately 
-np_m <- lm(avgDW ~ temp + treatment_type, data = np_only)
-anova(np_m)  # significant difference between control and treatment!
+# results
+summary(all_int)   # temp has a significant effect on avgDW (p = 1.92e-8)
+                   # type has significant effect on avgDW (NP groups are significantly 
+                      # different to each other it seems to say) (p = 0.0233)
+                   # temp*type interaction is significant, so the effect on temperature on 
+                      # avgDW depends on the type (makes sense)
+# adjusted R^2 = 0.9451 
 
-dr_m <- lm(avgDW ~ temp + treatment_type, data = dr_only)
-anova(dr_m)  # no difference between control and treatment = good for DR!! acclimation!!
+# using type 3 errors because 
+Anova(all_int, type = "III")   # significant interactions = temp*type 
+                               # means the first depends on the second 
+# effect of temperature on avgDW depends on type
+# temp is significant after controlling for treatment type and type 
+# type has a significant effect on avgDW 
 
 
 # model interpretation:
@@ -157,44 +167,80 @@ anova(dr_m)  # no difference between control and treatment = good for DR!! accli
 # including type as a random effect would be determining the relationship of temp and 
   # treatment type AFTER controlling for variation in type
 
-
 ## Creating mixed effects models 
-mixed_type <- lmer(avgDW ~ temp + treatment_type + (1|type), data = fulldata)
+mixed_type <- lmer(avgDW ~ temp + treatment_type + (1|type), data = fulldata, REML = F)
   # type as a random effect because DR and NP need to be controlled for, but I am not
   # interested in the direct relationship of it with avgDW 
+
+# checking model assumptions 
+plot(mixed_type)  
+qqnorm(resid(mixed_type))
+qqline(resid(mixed_type)) 
 
 summary(mixed_type)     # temp: -0.1628
                         # treatment_type: 0.6213
 confint(mixed_type, level = 0.95)     # temp: -0.2011 to -0.1355 
                                       # treatment_type: -0.007811 to 1.2503
-plot(mixed_type)  # checking model assumption 
-qqnorm(resid(mixed_type))
-qqline(resid(mixed_type)) 
 
-## Attempting to add other variables 
+anova(mixed_type, all_int)  # all_int is better at explaining the relationship
+
+
+## Separate ANCOVAs for NP and DR 
+# net photosynthesis (NP)
+np_temp <- lm(avgDW ~ temp, data = np_only)
+np_treatment_m <- lm(avgDW ~ treatment_type, data = np_only)
+np_both <- lm(avgDW ~ temp + treatment_type, data = np_only)
+np_int <- lm(avgDW ~ temp*treatment_type, data = np_only)
+
+AIC(np_temp, np_treatment_m, np_both, np_int)  # np_both is the best 
+
+# checking model assumptions
+plot(np_both)
+shapiro.test(resid(np_both))  # residuals are normally distributed 
+bptest(np_both)   # no heteroskedasticity 
+
+Anova(np_both, type = "III")  # treatmemt_type is significant (p = 0.0057765, F = 11.661) 
+                              # = there's a difference between control and treatment
+# temp has a significant effect on avgDW (p = 0.0001229, F = 33.404)
+summary(np_both)  # adjusted R^2 = 0.7681 
+
+# dark respiration (DR)
+dr_temp <- lm(avgDW ~ temp, data = dr_only)
+dr_treatment_m <- lm(avgDW ~ treatment_type, data = dr_only)
+dr_both <- lm(avgDW ~ temp + treatment_type, data = dr_only)
+dr_int <- lm(avgDW ~ temp*treatment_type, data = dr_only)
+
+AIC(dr_temp, dr_treatment_m, dr_both, dr_int)   # dr_temp and dr_both are very similar 
+
+# checking model assumptions
+plot(dr_both)  # some potential outliers 
+shapiro.test(resid(dr_both))  # residuals are NOT normally distributed 
+bptest(dr_both)   # no heteroskedasticity 
+
+Anova(dr_both, type = "III")  # temp has a significant effect (p = 2.24e-10, F = 469.556)
+# treatment_type is non-significant (p = 0.611, F = 0.274)
+  # no difference between control and treatment = good, implies acclimation of DR
+
+
+## Differences in carbon gain
 cgain <- read.csv("Data/c_gain_long.csv")
 
-# combining full data and carbon gain efficiency data
-combo <- full_join(fulldata, cgain)
-combo <- combo %>% 
-          rename(cgain_perc = percent) %>% 
-          rename(cgain_ratio = ratio)
+# extracting only NP data (just need one of them really because I want to see if the ratio
+# between NP and DR changes, and the percentage/ratio is already calculated)
+cgain_np <- cgain %>% 
+              filter(type == "NP")
 
-combo_m <- lmer(avgDW ~ temp + treatment_type + cgain_ratio + (1|type), data = combo)
-# I don't really see the point in adding it as a variable? Like what does it add???? 
+# creating models 
+null_c <- lm(percent ~ 1, data = cgain_np)
+c_temp <- lm(percent ~ temp, data = cgain_np)
+c_ttype <- lm(percent ~ temp + treatment_type, data = cgain_np)
+c_int <- lm(percent ~ temp*treatment_type, data = cgain_np)
 
-AIC(mixed_type, combo_m)  # combo_m is better 
-plot(combo_m)  # checking model assumption 
-qqnorm(resid(combo_m))
-qqline(resid(combo_m)) 
+c_mixed <- lmer(percent ~ temp + (1|treatment_type), data = cgain_np)  # treatment_type
+                                                            # explains little variation
+summary(c_mixed)
 
-summary(combo_m)    # temp: -0.1683
-                    # treatment_type: 0.6213
-                    # cgain_ratio: -1.5668
-confint(combo_m, level = 0.95)     # temp: -0.1965 to -0.1400
-                                   # treatment_type: 0.07927 to 1.1632
-                                   # cgain_ratio: -2.6337 to -0.5288
+AIC(null_c, c_temp, c_ttype, c_int)  # all better than null model, others aren't very different
+aov_c <- aov(c_ttype)  # there's no significant difference between treatment types it seems 
 
-# combo_m = parameters are all significant (lay within the CI's)
-  # temp has significant effect on avgDW, there's significant difference in avgDW between 
-  # treatments and there's significant relationship between c gain ratios and avgDW?? I think
+
