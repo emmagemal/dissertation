@@ -76,7 +76,7 @@ treatment_long_combo <- full_join(treatment_perc_long, treatment_ratio_long) %>%
 
 # combining treatments for plotting
 cgain_combo <- full_join(treatment_long_combo, control_long_combo)
-                      
+write.csv(cgain_combo, "Data/c_gain_long.csv", row.names = FALSE) 
 
 # making stacked plots 
 (stacked_DWc <- ggplot(control_long_combo, aes(x = temp, y = percent, fill = type)) +
