@@ -10,15 +10,28 @@ library(lme4)
 library(car)
 
 ### Data Manipulation ----
-fulldata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
+avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
+fulldata <- read.csv("Data/raw_np_dr_data.csv", header = TRUE)
+
+str(fulldata)
+str(avgdata)
 
 fulldata <- fulldata %>% 
               mutate(treatment_type = as.factor(treatment_type),
+                     type = as.factor(type),
+                     sample = as.factor(sample))
+
+avgdata <- avgdata %>% 
+              mutate(treatment_type = as.factor(treatment_type),
                      type = as.factor(type))
 
-np_only <- fulldata %>% 
+# subsetting NP and DR  
+np_only <- avgdata %>% 
               filter(type == "NP")
-dr_only <- fulldata %>% 
+
+np_only_full <- fulldata %>% filter(type == "NP")
+
+dr_only <- avgdata %>% 
               filter(type == "DR")
 
 np_control <- np_only %>% 
@@ -27,8 +40,8 @@ np_treatment <- np_only %>%
                     filter(treatment_type == "treatment")
 
 ### Calculating Optimum Temperature Ranges ----
-summary(full_control)  # max NP = 1.3321
-summary(full_treatment)  # max NP = 2.5546
+summary(np_control)  # max NP = 1.3321
+summary(np_treatment)  # max NP = 2.5546
 
 # calculating 90% of the maximum net photosynthesis 
 0.9*1.3321  # control = 1.19889
@@ -103,40 +116,50 @@ line.line.intersection(t1_neg, t2_neg, treatment_y_neg,
 
 ### Modelling ----
 # checking for normality of the data 
-(hist <- ggplot(fulldata, aes(x = avgDW)) +
+(hist <- ggplot(fulldata, aes(x = np_DW)) +
              geom_histogram(color = "black") +
              theme_classic() +
              scale_y_continuous(expand = c(0,0)))
 
-shapiro.test(fulldata$avgDW)   # p > 0.05, it IS normally distributed 
-
 ## Simple linear models 
-null <- lm(avgDW ~ 1, data = fulldata)
-temp <- lm(avgDW ~ temp, data = fulldata)
-treatment <- lm(avgDW ~ treatment_type, data = fulldata)
-temp_ttype <- lm(avgDW ~ temp + treatment_type, data = fulldata)
-temp_type <- lm(avgDW ~ temp + type, data = fulldata)
-temp_ttype_type <- lm(avgDW ~ temp + treatment_type + type, data = fulldata)
-temp_ttype_int <- lm(avgDW ~ temp*treatment_type, data = fulldata)
-temp_type_int <- lm(avgDW ~ temp*type, data = fulldata)
-temp_ttype_type_int <- lm(avgDW ~ temp + treatment_type*type, data = fulldata)
-temp_ttype_int_type <- lm(avgDW ~ temp*treatment_type + type, data = fulldata)
-all_int <- lm(avgDW ~ temp*treatment_type*type, data = fulldata)
+null <- lm(np_DW ~ 1, data = fulldata)
+temp <- lm(np_DW ~ temp, data = fulldata)
+temp_ttype <- lm(np_DW ~ temp + treatment_type, data = fulldata)
+temp_type <- lm(np_DW ~ temp + type, data = fulldata)
+temp_ttype_type <- lm(np_DW ~ temp + treatment_type + type, data = fulldata)
+temp_ttype_int <- lm(np_DW ~ temp*treatment_type, data = fulldata)
+temp_type_int <- lm(np_DW ~ temp*type, data = fulldata)
+temp_ttype_type_int <- lm(np_DW ~ temp + treatment_type*type, data = fulldata)
+temp_ttype_int_type <- lm(np_DW ~ temp*treatment_type + type, data = fulldata)
+all_int <- lm(np_DW ~ temp*treatment_type*type, data = fulldata)
 
-AIC(null, treatment, temp, temp_ttype, temp_type, temp_ttype_type, temp_ttype_int, 
+AIC(null, temp, temp_ttype, temp_type, temp_ttype_type, temp_ttype_int, 
     temp_type_int, temp_ttype_type_int, temp_ttype_int_type, all_int)
 # all_int is the best model of these 
 
+# including sample to see its effect
+int_sample <- lm(np_DW ~ temp*treatment_type*type + sample, data = fulldata)
+all_int2 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata)
+
+AIC(null, all_int, int_sample, all_int2)  # all_int2 is best, but there's 49 parameters...
+
 # checking model assumptions 
-hist(residuals(all_int))   
-shapiro.test(residuals(all_int))  # residuals are normally distributed 
+hist(residuals(all_int2))   
+shapiro.test(residuals(all_int2))  # p < 0.05, residuals are not normally distributed 
 
-plot(all_int)    # potential non-linear relationship present 
-bptest(all_int)  # no heteroskedasticity in the model 
+plot(all_int2)    # some possible outliers, rows 29, 20, 39
+bptest(all_int2)  # p < 0.05, there is heteroskedasticity in the model 
 
+# attempting to transform the data 
+fulldata_cut <- fulldata[-c(29, 30, 39), ]
+all_int3 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata_cut)
+
+plot(all_int3)   # outliers: row 18, 37, 111
+bptest(all_int3) # no heteroskedasticity anymore 
+shapiro.test(resid(all_int3))  # still no normally distributed residuals 
 
 # results
-summary(all_int)   # temp has a significant effect on avgDW (p = 1.92e-8)
+summary(all_int3)   # temp has a significant effect on avgDW (p = 1.92e-8)
                    # type has significant effect on avgDW (NP groups are significantly 
                       # different to each other it seems to say) (p = 0.0233)
                    # temp*type interaction is significant, so the effect on temperature on 
@@ -144,46 +167,34 @@ summary(all_int)   # temp has a significant effect on avgDW (p = 1.92e-8)
 # adjusted R^2 = 0.9451 
 
 # using type 3 errors because 
-Anova(all_int, type = "III")   # significant interactions = temp*type 
+Anova(all_int2, type = "III")   # significant interactions = temp*type 
                                # means the first depends on the second 
 # effect of temperature on avgDW depends on type
 # temp is significant after controlling for treatment type and type 
 # type has a significant effect on avgDW 
 
 
-# model interpretation:
-# am seeing how average NP changes with temperature and treatment type 
-# I am allowing the relationship to vary with type (NP vs DR)
-# intercept of the model = average starting NP
-# each coefficient = how much change there is in NP with each temp step 
-# adding random effect (1|type) = how much variation in avgDW there is in the initial (low T) 
-  # NP between types (I'm allowing for variation by type)
-
-# the model is just telling me if the trends seen are significant and what the trend is 
-# I am looking at the difference in avgDW vs temp for control and treatment 
-  # and controlling for variation in avgDW with type (DR and NP)
-# HOWEVER, type only has 2 levels and it would be good to be able to make predictions about
-  # differences between type = probably better not to have it as a random effect at all 
-# including type as a random effect would be determining the relationship of temp and 
-  # treatment type AFTER controlling for variation in type
-
 ## Creating mixed effects models 
-mixed_type <- lmer(avgDW ~ temp + treatment_type + (1|type), data = fulldata, REML = F)
+mixed_type <- lmer(np_DW ~ temp + treatment_type + (1|type), data = fulldata, REML = F)
   # type as a random effect because DR and NP need to be controlled for, but I am not
   # interested in the direct relationship of it with avgDW 
 
-# checking model assumptions 
-plot(mixed_type)  
-qqnorm(resid(mixed_type))
-qqline(resid(mixed_type)) 
+# type only has 2 levels and it would be good to be able to make predictions about
+  # differences between type = probably better not to have it as a random effect at all 
 
-summary(mixed_type)     # temp: -0.1628
-                        # treatment_type: 0.6213
-confint(mixed_type, level = 0.95)     # temp: -0.2011 to -0.1355 
-                                      # treatment_type: -0.007811 to 1.2503
+# alternative mixed model
+mixed_sample <- lmer(np_DW ~ temp + treatment_type + type + (1|sample), 
+                     data = fulldata, REML = F)
+mixed_int_sample <- lmer(np_DW ~ temp*treatment_type*type + (1|sample), 
+                      data = fulldata, REML = F)
 
 anova(mixed_type, all_int)  # all_int is better at explaining the relationship
+anova(mixed_type, mixed_sample)
+anova(mixed_sample, all_int)
+anova(mixed_int_sample, all_int)
 
+Anova(mixed_int_sample, type = "III")
+plot(mixed_int_sample)
 
 ## Separate ANCOVAs for NP and DR 
 # net photosynthesis (NP)
@@ -220,7 +231,7 @@ bptest(dr_both)   # no heteroskedasticity
 Anova(dr_both, type = "III")  # temp has a significant effect (p = 2.24e-10, F = 469.556)
 # treatment_type is non-significant (p = 0.611, F = 0.274)
   # no difference between control and treatment = good, implies acclimation of DR
-
+summary(dr_both)   # adjusted R^2 = 0.973 
 
 ## Differences in carbon gain
 cgain <- read.csv("Data/c_gain_long.csv")
