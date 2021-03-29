@@ -1,4 +1,4 @@
-# Test Plots (PLOT SCRIPT ONLY, NOT STATS)
+# Plots for dissertation 
 # Emma Gemal, s1758915@sms.ed.ac.uk
 # University of Edinburgh 
 
@@ -6,20 +6,20 @@
 library(tidyverse)
 
 ## Temperature Response Curves ----
-fulldata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
-str(fulldata)
+avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
+str(avgdata)
 
-fulldata <- fulldata %>% 
+avgdata <- avgdata %>% 
               mutate(treatment_type = as.factor(treatment_type),
                      type = as.factor(type))
-str(fulldata)
+str(avgdata)
 
 # temperature curve plots
-(all_plot <- ggplot(fulldata, aes(x = temp, y = avgDW)) +
+(all_plot <- ggplot(avgdata, aes(x = temp, y = avgDW)) +
                 geom_point(aes(color = treatment_type, shape = type), 
                            size = 2.5, alpha = 0.85))
 
-(facet_plot <- ggplot(fulldata, aes(x = temp, y = avgDW)) +
+(facet_plot <- ggplot(avgdata, aes(x = temp, y = avgDW)) +
                   geom_hline(yintercept = 0, color = "white", size = 1.5) +  # optional to keep              
                   geom_point(aes(shape = treatment_type, color = treatment_type),
                              size = 2) +
@@ -31,7 +31,7 @@ str(fulldata)
 # respiration has acclimated to remain exactly the same as the control!! 
 
 # using chlorophyll data instead
-(facet_plot_chl <- ggplot(fulldata, aes(x = temp, y = avgChl)) +
+(facet_plot_chl <- ggplot(avgdata, aes(x = temp, y = avgChl)) +
                       geom_hline(yintercept = 0, color = "white", size = 1.5) +  # optional to keep              
                       geom_point(aes(shape = treatment_type, color = treatment_type),
                                  size = 2) +
