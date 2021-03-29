@@ -137,41 +137,15 @@ AIC(null, temp, temp_ttype, temp_type, temp_ttype_type, temp_ttype_int,
     temp_type_int, temp_ttype_type_int, temp_ttype_int_type, all_int)
 # all_int is the best model of these 
 
+    
+
+
 # including sample to see its effect
 int_sample <- lm(np_DW ~ temp*treatment_type*type + sample, data = fulldata)
 all_int2 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata)
 
 AIC(null, all_int, int_sample, all_int2)  # all_int2 is best, but there's 49 parameters...
-
-# checking model assumptions 
-hist(residuals(all_int2))   
-shapiro.test(residuals(all_int2))  # p < 0.05, residuals are not normally distributed 
-
-plot(all_int2)    # some possible outliers, rows 29, 20, 39
-bptest(all_int2)  # p < 0.05, there is heteroskedasticity in the model 
-
-# attempting to transform the data 
-fulldata_cut <- fulldata[-c(29, 30, 39), ]
-all_int3 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata_cut)
-
-plot(all_int3)   # outliers: row 18, 37, 111
-bptest(all_int3) # no heteroskedasticity anymore 
-shapiro.test(resid(all_int3))  # still no normally distributed residuals 
-
-# results
-summary(all_int3)   # temp has a significant effect on avgDW (p = 1.92e-8)
-                   # type has significant effect on avgDW (NP groups are significantly 
-                      # different to each other it seems to say) (p = 0.0233)
-                   # temp*type interaction is significant, so the effect on temperature on 
-                      # avgDW depends on the type (makes sense)
-# adjusted R^2 = 0.9451 
-
-# using type 3 errors because 
-Anova(all_int2, type = "III")   # significant interactions = temp*type 
-                               # means the first depends on the second 
-# effect of temperature on avgDW depends on type
-# temp is significant after controlling for treatment type and type 
-# type has a significant effect on avgDW 
+# use mixed effect models instead 
 
 
 ## Creating mixed effects models 
@@ -182,19 +156,20 @@ mixed_type <- lmer(np_DW ~ temp + treatment_type + (1|type), data = fulldata, RE
 # type only has 2 levels and it would be good to be able to make predictions about
   # differences between type = probably better not to have it as a random effect at all 
 
-# alternative mixed model
 mixed_sample <- lmer(np_DW ~ temp + treatment_type + type + (1|sample), 
                      data = fulldata, REML = F)
 mixed_int_sample <- lmer(np_DW ~ temp*treatment_type*type + (1|sample), 
                       data = fulldata, REML = F)
 
-anova(mixed_type, all_int)  # all_int is better at explaining the relationship
 anova(mixed_type, mixed_sample)
-anova(mixed_sample, all_int)
-anova(mixed_int_sample, all_int)
+anova(mixed_int_sample, mixed_sample)  # mixed_int_sample is better 
+anova(mixed_int_sample, all_int)  # mixed_int_sample is better at explaining the relationship
+anova(mixed_int_sample, all_int2)
 
+summary(mixed_int_sample)
 Anova(mixed_int_sample, type = "III")
 plot(mixed_int_sample)
+
 
 ## Separate ANCOVAs for NP and DR 
 # net photosynthesis (NP)
@@ -233,6 +208,7 @@ Anova(dr_both, type = "III")  # temp has a significant effect (p = 2.24e-10, F =
   # no difference between control and treatment = good, implies acclimation of DR
 summary(dr_both)   # adjusted R^2 = 0.973 
 
+
 ## Differences in carbon gain
 cgain <- read.csv("Data/c_gain_long.csv")
 
@@ -249,9 +225,40 @@ c_int <- lm(percent ~ temp*treatment_type, data = cgain_np)
 
 c_mixed <- lmer(percent ~ temp + (1|treatment_type), data = cgain_np)  # treatment_type
                                                             # explains little variation
-summary(c_mixed)
+summary(c_ttype)
 
 AIC(null_c, c_temp, c_ttype, c_int)  # all better than null model, others aren't very different
 aov_c <- aov(c_ttype)  # there's no significant difference between treatment types it seems 
 
 
+
+#### IN CASE I NEED IT AGAIN ----
+# checking model assumptions 
+hist(residuals(all_int2))   
+shapiro.test(residuals(all_int2))  # p < 0.05, residuals are not normally distributed 
+
+plot(all_int2)    # some possible outliers, rows 29, 20, 39
+bptest(all_int2)  # p < 0.05, there is heteroskedasticity in the model 
+
+# attempting to transform the data 
+fulldata_cut <- fulldata[-c(29, 30, 39), ]
+all_int3 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata_cut)
+
+plot(all_int3)   # outliers: row 18, 37, 111
+bptest(all_int3) # no heteroskedasticity anymore 
+shapiro.test(resid(all_int3))  # still no normally distributed residuals 
+
+# results
+summary(all_int3)   # temp has a significant effect on avgDW (p = 1.92e-8)
+# type has significant effect on avgDW (NP groups are significantly 
+# different to each other it seems to say) (p = 0.0233)
+# temp*type interaction is significant, so the effect on temperature on 
+# avgDW depends on the type (makes sense)
+# adjusted R^2 = 0.9451 
+
+# using type 3 errors because 
+Anova(all_int2, type = "III")   # significant interactions = temp*type 
+# means the first depends on the second 
+# effect of temperature on avgDW depends on type
+# temp is significant after controlling for treatment type and type 
+# type has a significant effect on avgDW 
