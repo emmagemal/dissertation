@@ -5,7 +5,6 @@
 ### Library ----
 library(tidyverse)
 library(lme4)
-library(viridis)
 
 
 # loading the data
@@ -237,9 +236,24 @@ sum_active <- sum_active %>%
                       geom_point(size = 2.5) +  
                       geom_line(aes(group = type)) +
                       geom_hline(yintercept = 0, linetype = "dashed") +
-                      theme_classic() +
-                      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-                      scale_color_manual(values = c("#004452", "#B5BA4F", "#12A7B8")))
+                      ylab(label = "Temperature (˚C)") +
+                      xlab(label = "Season") +
+                      theme_bw() +
+                      theme(axis.text.x = element_text(angle = 60, hjust = 1),
+                            panel.grid.major.x = element_blank(),
+                           # legend.box.background = element_rect(color = "black"),
+                            legend.title = element_blank(),
+                            axis.title.x = 
+                              element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                            axis.title.y = 
+                              element_text(margin = margin(t = 0, r = 10, b = 0, l = 0))) +
+                      theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                      scale_color_manual(values = c("#004452", "#B5BA4F", "#12A7B8"),
+                                         labels = c("Mean", "Maximum", "Minimum")) + 
+                      scale_shape_discrete(labels = c("Mean", "Maximum", "Minimum")))
+
+ggsave("Figures/diss_figures/climate_plot.png", plot = avg_temp_season, 
+       width = 6.5, height = 5.5, units = "in")
 
 
 ## Relative Humidity 
