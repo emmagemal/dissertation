@@ -215,6 +215,7 @@ summary(all_int_dr)  # adjusted R^2 = 0.9591
 anova(all_int_dr)  # treatment_type and temp*treatment_type are NOT significant 
 # sample and temp*sample are significant (between sample variation is more important than
   # treatment type)
+# the significant interaction (temp*sample) = the response of np_DW to temp depends on sample
 
 summary(mixed_sample_dr)  # sample explains most of the variance 
 # std. error is > treatment estimate 
@@ -245,33 +246,3 @@ aov_c <- aov(c_ttype)  # there's no significant difference between treatment typ
 
 
 
-#### IN CASE I NEED IT AGAIN ----
-# checking model assumptions 
-hist(residuals(all_int2))   
-shapiro.test(residuals(all_int2))  # p < 0.05, residuals are not normally distributed 
-
-plot(all_int2)    # some possible outliers, rows 29, 20, 39
-bptest(all_int2)  # p < 0.05, there is heteroskedasticity in the model 
-
-# attempting to transform the data 
-fulldata_cut <- fulldata[-c(29, 30, 39), ]
-all_int3 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata_cut)
-
-plot(all_int3)   # outliers: row 18, 37, 111
-bptest(all_int3) # no heteroskedasticity anymore 
-shapiro.test(resid(all_int3))  # still no normally distributed residuals 
-
-# results
-summary(all_int3)   # temp has a significant effect on avgDW (p = 1.92e-8)
-# type has significant effect on avgDW (NP groups are significantly 
-# different to each other it seems to say) (p = 0.0233)
-# temp*type interaction is significant, so the effect on temperature on 
-# avgDW depends on the type (makes sense)
-# adjusted R^2 = 0.9451 
-
-# using type 3 errors because 
-Anova(all_int2, type = "III")   # significant interactions = temp*type 
-# means the first depends on the second 
-# effect of temperature on avgDW depends on type
-# temp is significant after controlling for treatment type and type 
-# type has a significant effect on avgDW 
