@@ -32,9 +32,13 @@ dr_only <- avgdata %>%
               filter(type == "DR")
 
 np_control <- np_only %>% 
-                  filter(treatment_type == "control")
+                filter(treatment_type == "control")
 np_treatment <- np_only %>% 
-                    filter(treatment_type == "treatment")
+                  filter(treatment_type == "treatment")
+dr_control <- dr_only %>% 
+                filter(treatment_type == "control")
+dr_treatment <- dr_only %>% 
+                  filter(treatment_type == "treatment")
 
 # subsetting NP and DR (full) for models 
 np_full <- fulldata %>% 
@@ -44,8 +48,11 @@ dr_full <- fulldata %>%
 
 
 ### Calculating Optimum Temperature Ranges ----
-summary(np_control)  # max NP = 1.3321
-summary(np_treatment)  # max NP = 2.5546
+summary(np_control)  # max control NP = 1.3321
+summary(np_treatment)  # max treatment NP = 2.5546
+
+summary(dr_control)  # max control DR (min. number) = -6.1712
+summary(dr_treatment)  # max treatment DR = -6.7696
 
 # calculating 90% of the maximum net photosynthesis 
 0.9*1.3321  # control = 1.19889
@@ -156,12 +163,14 @@ bptest(all_int_np_edit)  # p >> 0.05, no heteroskasticity
 
 ## Mixed effects models 
 mixed_null_np <- lmer(np_DW ~ 1 + (1|sample), data = np_full, REML = F)
-mixed_sample_np <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = np_full, REML = F)
+mixed_sample_np <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = np_full, REML = T)
   # sample as a random effect because sample needs to be controlled for, but I am not
   # interested in the direct relationship of it with np_DW 
 
-mixed_int_sample_np <- lmer(np_DW ~ temp*treatment_type + (1|sample), data = np_full, REML = F)
+mixed_int_sample_np <- lmer(np_DW ~ temp*treatment_type + (1|sample), data = np_full, REML = T)
 
+#### to compare models you need REML = F, but to do an F-test rather than chi squared test
+  # you need to REML = T 
 anova(mixed_null_np, mixed_sample_np)  # mixed_sample_np is better than the null model
 anova(mixed_null_np, mixed_int_sample_np)  # mixed_int_sample_np is better than null model
 anova(mixed_sample_np, mixed_int_sample_np)  # interaction is NOT significantly better
@@ -176,7 +185,13 @@ summary(all_int_np_edit)  # adjusted R^2 = 0.7594
 anova(all_int_np_edit)  # all are significant
 
 summary(mixed_sample_np)  # sample quite a bit of the excess variation 
-Anova(mixed_sample_np, type = "III")  # both temp and treatment_type significant effect NP
+Anova(mixed_sample_np, type = "III", test = "F")  # both temp and treatment_type significant effect NP
+# type 3 = how much variability in NP can be attributed to be temp after accounting 
+  # for everything else. then how much can be attributed to treatment after accounting for 
+  # everything else, etc. 
+# type 1 would be how much is attributed to temp, then how much of the leftover variability
+  # is explained by treatment, then how much that's left is explained by the rest, etc. 
+  # (order matters for type 1)
 
 
 ### Models for DR ----
@@ -199,7 +214,7 @@ AIC(null_dr, temp_dr, temp_ttype_dr, temp_sample_dr, temp_ttype_sample_dr, temp_
 
 ## Mixed effect models 
 mixed_null_dr <- lmer(np_DW ~ 1 + (1|sample), data = dr_full, REML = F)
-mixed_sample_dr <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = dr_full, REML = F)
+mixed_sample_dr <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = dr_full, REML = T)
 mixed_int_sample_dr <- lmer(np_DW ~ temp*treatment_type + (1|sample), 
                             data = dr_full, REML = F)
 
@@ -219,9 +234,11 @@ anova(all_int_dr)  # treatment_type and temp*treatment_type are NOT significant
 
 summary(mixed_sample_dr)  # sample explains most of the variance 
 # std. error is > treatment estimate 
-Anova(mixed_sample_dr, type = "III")  # treatment_type is not significant 
+Anova(mixed_sample_dr, type = "III", test = "F")  # treatment_type is not significant 
 # no difference between control and treatment = good, implies acclimation of DR
 
+# a large F ratio = means are not equal, variabiltiy between group means is larger than within
+  # = means it's significant
 
 ### Carbon Gain Models ----
 cgain <- read.csv("Data/c_gain_long.csv")
@@ -245,4 +262,5 @@ AIC(null_c, c_temp, c_ttype, c_int)  # all better than null model, others aren't
 aov_c <- aov(c_ttype)  # there's no significant difference between treatment types it seems 
 
 
-
+c_ttest <- t.test(ratio ~ temp, data = cgain)
+# to do t test, the grouping factor (predictor) can only have 2 levels 
