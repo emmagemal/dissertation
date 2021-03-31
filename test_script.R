@@ -23,23 +23,25 @@ str(avgdata)
 (facet_plot <- ggplot(avgdata, aes(x = temp, y = avgDW)) +
                   geom_hline(yintercept = 0, color = "grey", size = 1) +  # optional to keep              
                   geom_point(aes(shape = treatment_type, color = treatment_type),
-                             size = 2) +
+                             size = 2.2) +
                   geom_line(aes(color = treatment_type)) +
                   facet_wrap(~type, nrow = 1) +
                   geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW,
                                     color = treatment_type),
                                 width = 0.5) +
-                  scale_color_manual(values = c("#12A7B8", "#004452")))  
+                  scale_color_manual(values = c("#12A7B8", "#004452")) +
+                  theme_bw())  
 # respiration has acclimated to remain exactly the same as the control!! 
 
 # using chlorophyll data instead
 (facet_plot_chl <- ggplot(avgdata, aes(x = temp, y = avgChl)) +
-                      geom_hline(yintercept = 0, color = "white", size = 1.5) +  # optional to keep              
+                      geom_hline(yintercept = 0, color = "grey", size = 1) +  # optional to keep              
                       geom_point(aes(shape = treatment_type, color = treatment_type),
-                                 size = 2) +
+                                 size = 2.2) +
                       geom_line(aes(color = treatment_type)) +
                       facet_wrap(~type, nrow = 1) +
-                      scale_color_manual(values = c("#12A7B8", "#004452")))
+                      scale_color_manual(values = c("#12A7B8", "#004452")) +
+                      theme_bw())
 # basically the same relationship, which is good! Slightly different values of course 
 # use to show that the relationship is the same, and explain that DW is used throughout
   # in order to allow scaling and comparison with other vegetation types 
@@ -55,8 +57,9 @@ cgain_wide <- read.csv("Data/c_gain_efficiency.csv")  # if keeping the 2nd plot
                     geom_bar(position = "fill", stat = "identity") +
                     facet_wrap(~treatment_type, nrow = 1) +
                     scale_fill_manual(values = c("#FF6D33", "#7A292A")) +
-                    theme_classic())  
-
+                    scale_y_continuous(expand = expansion(mult = c(0, 0.01))) +  # OR
+               #    scale_y_continuous(expand = c(0,0)) +
+                    theme_bw())
 # idk if I need this one: 
 # change in ratio between respiration and (gross) photosynthesis 
 (dr_gp_plot <- ggplot(cgain_wide, aes(x = temp, y = DRratio_DW)) +
@@ -74,7 +77,7 @@ ratios <- read.csv("Data/acclim_ratios.csv")
                   geom_point(aes(color = type, shape = type), size = 2.5, alpha = 0.9) +
                #  geom_line(aes(color = type)) +  # don't know if I need to connect them
                   geom_hline(yintercept = 1, linetype = "dotted") +
-                  theme_classic() +
+                  theme_bw() +
                   scale_color_manual(values = c("#FF6D33", "#7A292A")))
 
 # DR = 10-30 degrees the dark respiration ratios are nearly identical/ very similar
@@ -106,20 +109,15 @@ light_treatment <- light %>%
                       filter(treatment_type == "treatment")
 
 # plotting the light response curves
-(light_plots <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
-                  geom_point() +
-                  geom_line() +
-                  facet_wrap(~treatment_type))
+vline <- data.frame(z = c(750, 300), treatment_type = factor(c("control", "treatment")))
 
-## OR do (probably best not to include the lines tbh... shows inaccuracy in estimates)
-(light_plots_c <- ggplot(light_control, aes(x = Lcuv, y = avgCO2)) +
-                    geom_vline(xintercept = 780, size = 20, alpha = 0.3) +                
-                    geom_point() +
-                    geom_line()) 
-(light_plots_t <- ggplot(light_treatment, aes(x = Lcuv, y = avgCO2)) +
-                    geom_vline(xintercept = 400, size = 20, alpha = 0.3) +                
-                    geom_point() +
-                    geom_line()) 
+(light_plots <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
+                  geom_point(aes(color = treatment_type), size = 2.2) +
+                  geom_line(aes(color = treatment_type)) +
+                  facet_wrap(~treatment_type) +
+             #     geom_vline(data = vline, aes(xintercept = z), size = 10, alpha = 0.3) +              
+                  theme_bw() +
+                  scale_color_manual(values = c("#12A7B8", "#004452")))
 
 
 
