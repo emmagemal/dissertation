@@ -19,15 +19,17 @@ str(avgdata)
                 geom_point(aes(color = treatment_type, shape = type), 
                            size = 2.5, alpha = 0.85))
 
+# FOR DISSERTATION 
 (facet_plot <- ggplot(avgdata, aes(x = temp, y = avgDW)) +
-                  geom_hline(yintercept = 0, color = "white", size = 1.5) +  # optional to keep              
+                  geom_hline(yintercept = 0, color = "grey", size = 1) +  # optional to keep              
                   geom_point(aes(shape = treatment_type, color = treatment_type),
                              size = 2) +
                   geom_line(aes(color = treatment_type)) +
                   facet_wrap(~type, nrow = 1) +
                   geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW,
                                     color = treatment_type),
-                                width = 0.5))  # USE THIS ONE I THINK! 
+                                width = 0.5) +
+                  scale_color_manual(values = c("#12A7B8", "#004452")))  
 # respiration has acclimated to remain exactly the same as the control!! 
 
 # using chlorophyll data instead
@@ -36,69 +38,33 @@ str(avgdata)
                       geom_point(aes(shape = treatment_type, color = treatment_type),
                                  size = 2) +
                       geom_line(aes(color = treatment_type)) +
-                      facet_wrap(~type, nrow = 1))
+                      facet_wrap(~type, nrow = 1) +
+                      scale_color_manual(values = c("#12A7B8", "#004452")))
 # basically the same relationship, which is good! Slightly different values of course 
 # use to show that the relationship is the same, and explain that DW is used throughout
   # in order to allow scaling and comparison with other vegetation types 
 
 
 ## Carbon Gain Efficiency ----
-cgain <- read.csv("Data/c_gain_efficiency.csv")  
+cgain <- read.csv("Data/c_gain_long.csv") 
+cgain_wide <- read.csv("Data/c_gain_efficiency.csv")  # if keeping the 2nd plot 
 
-# separating the control and treatment data 
-control_dw <- cgain[cgain$treatment_type == "control", ]
-treatment_dw <- cgain[cgain$treatment_type == "treatment", ]
-
-# putting dark respiration and net photosynthesis values into a long column 
-control_perc_long <- control_dw %>% 
-                        gather(type, percent, 5:6) %>% 
-                        mutate(type = case_when(type == "DRperc_DW" ~ "DR",
-                                                type == "NPperc_DW" ~ "NP"))
-control_ratio_long <- control_dw %>% 
-                        gather(type, ratio, 3:4) %>% 
-                        mutate(type = case_when(type == "DRratio_DW" ~ "DR",
-                                                type == "NPratio_DW" ~ "NP"))
-control_long_combo <- full_join(control_perc_long, control_ratio_long) %>% 
-                        dplyr::select(c("temp", "GP_DW", "treatment_type",
-                                        "type", "percent", "ratio"))
-                      
-treatment_perc_long <- treatment_dw %>% 
-                          gather(type, percent, 5:6) %>% 
-                          mutate(type = case_when(type == "DRperc_DW" ~ "DR",
-                                                  type == "NPperc_DW" ~ "NP"))
-treatment_ratio_long <- treatment_dw %>% 
-                          gather(type, ratio, 3:4) %>% 
-                          mutate(type = case_when(type == "DRratio_DW" ~ "DR",
-                                                  type == "NPratio_DW" ~ "NP"))
-treatment_long_combo <- full_join(treatment_perc_long, treatment_ratio_long) %>% 
-                          dplyr::select(c("temp", "GP_DW", "treatment_type",
-                                          "type", "percent", "ratio"))
-
-# combining treatments for plotting
-cgain_combo <- full_join(treatment_long_combo, control_long_combo)
-write.csv(cgain_combo, "Data/c_gain_long.csv", row.names = FALSE) 
-
-# making stacked plots 
-(stacked_DWc <- ggplot(control_long_combo, aes(x = temp, y = percent, fill = type)) +
-                    geom_bar(position = "fill", stat = "identity"))
-# greatest proportion as DR/ smallest as NP at 20 degrees (similar to proportion at 15 though)
-
-(stacked_DWt <- ggplot(treatment_long_combo, aes(x = temp, y = percent, fill = type)) +
-                      geom_bar(position = "fill", stat = "identity"))
-# greatest proportion as DR/smallest as NP at 25
-
-(stacked_both <- ggplot(cgain_combo, aes(x = temp, y = percent, fill = type)) +
+# making stacked plot
+# FOR DISSERTATION
+(stacked_both <- ggplot(cgain, aes(x = temp, y = percent, fill = type)) +
                     geom_bar(position = "fill", stat = "identity") +
-                    facet_wrap(~treatment_type, nrow = 1))  # USE THIS I THINK!
+                    facet_wrap(~treatment_type, nrow = 1) +
+                    scale_fill_manual(values = c("#FF6D33", "#7A292A")) +
+                    theme_classic())  
 
+# idk if I need this one: 
 # change in ratio between respiration and (gross) photosynthesis 
-(dr_gp_plot <- ggplot(cgain, aes(x = temp, y = DRratio_DW)) +
-                  geom_point(aes(color = treatment_type)) +
-                  geom_line(aes(color = treatment_type, linetype = treatment_type)))
+(dr_gp_plot <- ggplot(cgain_wide, aes(x = temp, y = DRratio_DW)) +
+                  geom_point(aes(color = treatment_type), size = 2) +
+                  geom_line(aes(color = treatment_type, linetype = treatment_type)) +
+                  scale_color_manual(values = c("#12A7B8", "#004452")))
 # treatment appears to have acclimated, has lower ratios = has smaller R 
  # or larger GP at higher temperatures 
-
-## could potentially use a beta distribution for a glm model, as it uses values BETWEEN 0 and 1
 
 
 ## Acclimation Ratios ----
@@ -106,7 +72,10 @@ ratios <- read.csv("Data/acclim_ratios.csv")
 
 (ratio_plot <- ggplot(ratios, aes(x = temp, y = DWc.t)) +
                   geom_point(aes(color = type, shape = type), size = 2.5, alpha = 0.9) +
-                  geom_hline(yintercept = 1, linetype = "dotted"))
+               #  geom_line(aes(color = type)) +  # don't know if I need to connect them
+                  geom_hline(yintercept = 1, linetype = "dotted") +
+                  theme_classic() +
+                  scale_color_manual(values = c("#FF6D33", "#7A292A")))
 
 # DR = 10-30 degrees the dark respiration ratios are nearly identical/ very similar
   # could imply Q10 is the same for those temperatures, so >5 degrees 
@@ -151,4 +120,41 @@ light_treatment <- light %>%
                     geom_vline(xintercept = 400, size = 20, alpha = 0.3) +                
                     geom_point() +
                     geom_line()) 
-  
+
+
+
+
+
+#### creating c_gain_long.csv
+# separating the control and treatment data 
+control_dw <- cgain[cgain$treatment_type == "control", ]
+treatment_dw <- cgain[cgain$treatment_type == "treatment", ]
+
+# putting dark respiration and net photosynthesis values into a long column 
+control_perc_long <- control_dw %>% 
+  gather(type, percent, 5:6) %>% 
+  mutate(type = case_when(type == "DRperc_DW" ~ "DR",
+                          type == "NPperc_DW" ~ "NP"))
+control_ratio_long <- control_dw %>% 
+  gather(type, ratio, 3:4) %>% 
+  mutate(type = case_when(type == "DRratio_DW" ~ "DR",
+                          type == "NPratio_DW" ~ "NP"))
+control_long_combo <- full_join(control_perc_long, control_ratio_long) %>% 
+  dplyr::select(c("temp", "GP_DW", "treatment_type",
+                  "type", "percent", "ratio"))
+
+treatment_perc_long <- treatment_dw %>% 
+  gather(type, percent, 5:6) %>% 
+  mutate(type = case_when(type == "DRperc_DW" ~ "DR",
+                          type == "NPperc_DW" ~ "NP"))
+treatment_ratio_long <- treatment_dw %>% 
+  gather(type, ratio, 3:4) %>% 
+  mutate(type = case_when(type == "DRratio_DW" ~ "DR",
+                          type == "NPratio_DW" ~ "NP"))
+treatment_long_combo <- full_join(treatment_perc_long, treatment_ratio_long) %>% 
+  dplyr::select(c("temp", "GP_DW", "treatment_type",
+                  "type", "percent", "ratio"))
+
+# combining treatments for plotting
+cgain_combo <- full_join(treatment_long_combo, control_long_combo)
+write.csv(cgain_combo, "Data/c_gain_long.csv", row.names = FALSE) 
