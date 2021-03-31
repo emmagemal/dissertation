@@ -5,6 +5,8 @@
 ### Library ----
 library(tidyverse)
 library(lme4)
+library(viridis)
+
 
 # loading the data
 climate2011 <- read.csv("Data/climate_long_2011-2018.csv")
@@ -204,28 +206,23 @@ sum_active <- sum_active %>%
                 mutate(season = as.factor(season))
 
 ### Data Visualization ----
-# temp over time by year 
-(temp_year <- ggplot(combo, aes(x = year, y = temp)) +
-                 geom_point(size = 0.1) +
-                 stat_smooth(method = "lm"))
-
-# temp over time (non-faceted, scatterplot), better to use averages probably 
+## Temperature 
+# temp over time (non-faceted, scatterplot) 
 (temp <- ggplot(combo, aes(x = date_time, y = temp)) +
            geom_point(size = 0.1) +
            stat_smooth(method = "lm"))
 
-# temp over time (non-faceted, boxplot)
+# temp over time (non-faceted, boxplot) - FOR PUBLICATION 
 (temp_boxplot <- ggplot(combo, aes(x = season, y = temp)) +
                     geom_boxplot(aes(fill = season)) +
                     theme(axis.text.x = element_text(angle = 90)))
 
-# temperature over time per season 
-(temp <- ggplot(combo, aes(x = date_time, y = temp, fill = season)) +   
-           geom_line(aes(color = season)) +
-           scale_x_datetime(date_labels = "%b", date_breaks = "1 month") +
-           facet_wrap(vars(season), ncol = 3, scales = "free_x") +
-           scale_color_viridis(discrete = TRUE))
-
+# temp over time per season - FOR PUBLICATION APPENDIX 
+(temp_facet <- ggplot(combo, aes(x = date_time, y = temp, fill = season)) +   
+                 geom_line(aes(color = season)) +
+                 scale_x_datetime(date_labels = "%b", date_breaks = "1 month") +
+                 facet_wrap(vars(season), ncol = 3, scales = "free_x") +
+                 scale_color_viridis(discrete = TRUE))
 
 # average, minimum and maximum temperature over time (by year)
 (avg_temp_year <- ggplot(sum_year_long, aes(x = year, y = temp, 
@@ -234,25 +231,34 @@ sum_active <- sum_active %>%
                     geom_line() +
                     stat_smooth(method = "lm"))
 
-# average, minimum and maximum temperature over time (by season) <-- USE FOR DISS?
+# average, minimum and maximum temperature over time (by season) - FOR DISSERTATION
 (avg_temp_season <- ggplot(sum_season_long, aes(x = season, y = temp, 
                                                 color = type, shape = type)) +
                       geom_point(size = 2.5) +  
                       geom_line(aes(group = type)) +
                       geom_hline(yintercept = 0, linetype = "dashed") +
                       theme_classic() +
-                      theme(axis.text.x = element_text(angle = 90)))
+                      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+                      scale_color_manual(values = c("#004452", "#B5BA4F", "#12A7B8")))
 
 
-# relative humidity over time (non-faceted, scatterplot)
+## Relative Humidity 
+# rH over time (non-faceted, scatterplot)
 (rh <- ggplot(combo, aes(x = date_time, y = rH)) +
           geom_point(size = 0.1) +
           stat_smooth(method = "lm"))
 
-# relative humidity over time (non-faceted, boxplot)
+# rH over time (non-faceted, boxplot) - FOR PUBLICATION 
 (rh_boxplot <- ggplot(combo, aes(x = season, y = rH)) +
                   geom_boxplot() +
                   theme(axis.text.x = element_text(angle = 90)))
+
+# rH over time per season - FOR PUBLICATION APPENDIX ??
+(rh_facet <- ggplot(combo, aes(x = date_time, y = rH, fill = season)) +   
+                geom_line(aes(color = season)) +
+                scale_x_datetime(date_labels = "%b", date_breaks = "1 month") +
+                facet_wrap(vars(season), ncol = 3, scales = "free_x") +
+                scale_color_viridis(discrete = TRUE))
 
 
 ### Data Analysis for Temperature ----
