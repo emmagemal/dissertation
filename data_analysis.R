@@ -10,8 +10,8 @@ library(lme4)
 library(car)
 
 ### Data Manipulation ----
-avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
 fulldata <- read.csv("Data/raw_np_dr_data.csv", header = TRUE)
+avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
 
 str(fulldata)
 str(avgdata)
@@ -25,12 +25,9 @@ avgdata <- avgdata %>%
               mutate(treatment_type = as.factor(treatment_type),
                      type = as.factor(type))
 
-# subsetting NP and DR  
+# subsetting average NP and DR for calculations
 np_only <- avgdata %>% 
               filter(type == "NP")
-
-np_only_full <- fulldata %>% filter(type == "NP")
-
 dr_only <- avgdata %>% 
               filter(type == "DR")
 
@@ -38,6 +35,13 @@ np_control <- np_only %>%
                   filter(treatment_type == "control")
 np_treatment <- np_only %>% 
                     filter(treatment_type == "treatment")
+
+# subsetting NP and DR (full) for models 
+np_full <- fulldata %>% 
+              filter(type == "NP")
+dr_full <- fulldata %>% 
+              filter(type == "DR")
+
 
 ### Calculating Optimum Temperature Ranges ----
 summary(np_control)  # max NP = 1.3321
@@ -114,102 +118,111 @@ line.line.intersection(t1_neg, t2_neg, treatment_y_neg,
                        treatment_y2_neg, interior.only = FALSE)    # x = 26.2439˚C 
 
 
-### Modelling ----
+### Models for NP ----
 # checking for normality of the data 
 (hist <- ggplot(fulldata, aes(x = np_DW)) +
              geom_histogram(color = "black") +
              theme_classic() +
              scale_y_continuous(expand = c(0,0)))
 
-## Simple linear models 
-null <- lm(np_DW ~ 1, data = fulldata)
-temp <- lm(np_DW ~ temp, data = fulldata)
-temp_ttype <- lm(np_DW ~ temp + treatment_type, data = fulldata)
-temp_type <- lm(np_DW ~ temp + type, data = fulldata)
-temp_ttype_type <- lm(np_DW ~ temp + treatment_type + type, data = fulldata)
-temp_ttype_int <- lm(np_DW ~ temp*treatment_type, data = fulldata)
-temp_type_int <- lm(np_DW ~ temp*type, data = fulldata)
-temp_ttype_type_int <- lm(np_DW ~ temp + treatment_type*type, data = fulldata)
-temp_ttype_int_type <- lm(np_DW ~ temp*treatment_type + type, data = fulldata)
-all_int <- lm(np_DW ~ temp*treatment_type*type, data = fulldata)
+## General linear models 
+null_np <- lm(np_DW ~ 1, data = np_full)
+temp_np <- lm(np_DW ~ temp, data = np_full)
+temp_ttype_np <- lm(np_DW ~ temp + treatment_type, data = np_full)
+temp_sample_np <- lm(np_DW ~ temp + sample, data = np_full)
+temp_ttype_sample_np <- lm(np_DW ~ temp + treatment_type + sample, data = np_full)
+temp_ttype_int_np <- lm(np_DW ~ temp*treatment_type, data = np_full)
+temp_sample_int_np <- lm(np_DW ~ temp*sample, data = np_full)
+temp_ttype_int_sample_np <- lm(np_DW ~ temp + treatment_type*sample, data = np_full)
+temp_int_ttype_sample_np <- lm(np_DW ~ temp*treatment_type + sample, data = np_full)
+all_int_np <- lm(np_DW ~ temp*treatment_type*sample, data = np_full)
 
-AIC(null, temp, temp_ttype, temp_type, temp_ttype_type, temp_ttype_int, 
-    temp_type_int, temp_ttype_type_int, temp_ttype_int_type, all_int)
-# all_int is the best model of these 
+AIC(null_np, temp_np, temp_ttype_np, temp_sample_np, temp_ttype_sample_np, temp_ttype_int_np, 
+    temp_sample_int_np, temp_ttype_int_sample_np, temp_int_ttype_sample_np, all_int_np)
+# all_int_np is the best model of these 
 
-    
+# checking model assumptions 
+plot(all_int_np)   # outliers: row 14, 15, 18
+shapiro.test(resid(all_int_np))   # p << 0.05, residuals are not normally distributed 
+bptest(all_int_np)   #  p > 0.05 (just), no heteroskedasticity 
 
+# removing outliers
+np_full_edit <- np_full[-c(14, 15, 18), ]
+all_int_np_edit <- lm(np_DW ~ temp*treatment_type*sample, data = np_full_edit)
 
-# including sample to see its effect
-int_sample <- lm(np_DW ~ temp*treatment_type*type + sample, data = fulldata)
-all_int2 <- lm(np_DW ~ temp*treatment_type*type*sample, data = fulldata)
+plot(all_int_np_edit)
+shapiro.test(resid(all_int_np_edit))  # residuals still not normally distributed 
+bptest(all_int_np_edit)  # p >> 0.05, no heteroskasticity 
 
-AIC(null, all_int, int_sample, all_int2)  # all_int2 is best, but there's 49 parameters...
-# use mixed effect models instead 
+## Mixed effects models 
+mixed_null_np <- lmer(np_DW ~ 1 + (1|sample), data = np_full, REML = F)
+mixed_sample_np <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = np_full, REML = F)
+  # sample as a random effect because sample needs to be controlled for, but I am not
+  # interested in the direct relationship of it with np_DW 
 
+mixed_int_sample_np <- lmer(np_DW ~ temp*treatment_type + (1|sample), data = np_full, REML = F)
 
-## Creating mixed effects models 
-mixed_type <- lmer(np_DW ~ temp + treatment_type + (1|type), data = fulldata, REML = F)
-  # type as a random effect because DR and NP need to be controlled for, but I am not
-  # interested in the direct relationship of it with avgDW 
+anova(mixed_null_np, mixed_sample_np)  # mixed_sample_np is better than the null model
+anova(mixed_null_np, mixed_int_sample_np)  # mixed_int_sample_np is better than null model
+anova(mixed_sample_np, mixed_int_sample_np)  # interaction is NOT significantly better
 
-# type only has 2 levels and it would be good to be able to make predictions about
-  # differences between type = probably better not to have it as a random effect at all 
+## Comparing mixed and general linear models 
+anova(mixed_sample_np, all_int_np)  # all_int_np is better at explaining the relationship
 
-mixed_sample <- lmer(np_DW ~ temp + treatment_type + type + (1|sample), 
-                     data = fulldata, REML = F)
-mixed_int_sample <- lmer(np_DW ~ temp*treatment_type*type + (1|sample), 
-                      data = fulldata, REML = F)
+summary(all_int_np_edit)  # adjusted R^2 = 0.7594
+# idk what it means exactly, but the interactions between temp and T1-T6 and C6 = significant
+# so significant interaction terms, but the samples in themselves do not significantly 
+  # impact np_DW 
+anova(all_int_np_edit)  # all are significant
 
-anova(mixed_type, mixed_sample)
-anova(mixed_int_sample, mixed_sample)  # mixed_int_sample is better 
-anova(mixed_int_sample, all_int)  # mixed_int_sample is better at explaining the relationship
-anova(mixed_int_sample, all_int2)
-
-summary(mixed_int_sample)
-Anova(mixed_int_sample, type = "III")
-plot(mixed_int_sample)
-
-
-## Separate ANCOVAs for NP and DR 
-# net photosynthesis (NP)
-np_temp <- lm(avgDW ~ temp, data = np_only)
-np_treatment_m <- lm(avgDW ~ treatment_type, data = np_only)
-np_both <- lm(avgDW ~ temp + treatment_type, data = np_only)
-np_int <- lm(avgDW ~ temp*treatment_type, data = np_only)
-
-AIC(np_temp, np_treatment_m, np_both, np_int)  # np_both is the best 
-
-# checking model assumptions
-plot(np_both)
-shapiro.test(resid(np_both))  # residuals are normally distributed 
-bptest(np_both)   # no heteroskedasticity 
-
-Anova(np_both, type = "III")  # treatmemt_type is significant (p = 0.0057765, F = 11.661) 
-                              # = there's a difference between control and treatment
-# temp has a significant effect on avgDW (p = 0.0001229, F = 33.404)
-summary(np_both)  # adjusted R^2 = 0.7681 
-
-# dark respiration (DR)
-dr_temp <- lm(avgDW ~ temp, data = dr_only)
-dr_treatment_m <- lm(avgDW ~ treatment_type, data = dr_only)
-dr_both <- lm(avgDW ~ temp + treatment_type, data = dr_only)
-dr_int <- lm(avgDW ~ temp*treatment_type, data = dr_only)
-
-AIC(dr_temp, dr_treatment_m, dr_both, dr_int)   # dr_temp and dr_both are very similar 
-
-# checking model assumptions
-plot(dr_both)  # some potential outliers 
-shapiro.test(resid(dr_both))  # residuals are NOT normally distributed 
-bptest(dr_both)   # no heteroskedasticity 
-
-Anova(dr_both, type = "III")  # temp has a significant effect (p = 2.24e-10, F = 469.556)
-# treatment_type is non-significant (p = 0.611, F = 0.274)
-  # no difference between control and treatment = good, implies acclimation of DR
-summary(dr_both)   # adjusted R^2 = 0.973 
+summary(mixed_sample_np)  # sample quite a bit of the excess variation 
+Anova(mixed_sample_np, type = "III")  # both temp and treatment_type significant effect NP
 
 
-## Differences in carbon gain
+### Models for DR ----
+## General linear models 
+null_dr <- lm(np_DW ~ 1, data = dr_full)
+temp_dr <- lm(np_DW ~ temp, data = dr_full)
+temp_ttype_dr <- lm(np_DW ~ temp + treatment_type, data = dr_full)
+temp_sample_dr <- lm(np_DW ~ temp + sample, data = dr_full)
+temp_ttype_sample_dr <- lm(np_DW ~ temp + treatment_type + sample, data = dr_full)
+temp_ttype_int_dr <- lm(np_DW ~ temp*treatment_type, data = dr_full)
+temp_sample_int_dr <- lm(np_DW ~ temp*sample, data = dr_full)
+temp_ttype_int_sample_dr <- lm(np_DW ~ temp + treatment_type*sample, data = dr_full)
+temp_int_ttype_sample_dr <- lm(np_DW ~ temp*treatment_type + sample, data = dr_full)
+all_int_dr <- lm(np_DW ~ temp*treatment_type*sample, data = dr_full)
+
+AIC(null_dr, temp_dr, temp_ttype_dr, temp_sample_dr, temp_ttype_sample_dr, temp_ttype_int_dr, 
+    temp_sample_int_dr, temp_ttype_int_sample_dr, temp_int_ttype_sample_dr, all_int_dr)
+# all_int_dr and temp_sample_int_dr have the same AIC value and same degrees of freedom
+# use temp_sample_int_dr 
+
+## Mixed effect models 
+mixed_null_dr <- lmer(np_DW ~ 1 + (1|sample), data = dr_full, REML = F)
+mixed_sample_dr <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = dr_full, REML = F)
+mixed_int_sample_dr <- lmer(np_DW ~ temp*treatment_type + (1|sample), 
+                            data = dr_full, REML = F)
+
+anova(mixed_null_dr, mixed_sample_dr)  # mixed_sample_dr is better than the null model
+anova(mixed_null_dr, mixed_int_sample_dr)  # mixed_int_sample_dr is better than null model
+anova(mixed_sample_dr, mixed_int_sample_dr)  # interaction is NOT significantly better
+
+## Comparing mixed and general linear models 
+anova(mixed_sample_dr, all_int_dr)  # all_int_dr is better at explaining the relationship
+
+summary(all_int_dr)  # adjusted R^2 = 0.9591
+# only temp and a few temp*sample interactions (2 control, 3 treatment) are significant 
+anova(all_int_dr)  # treatment_type and temp*treatment_type are NOT significant 
+# sample and temp*sample are significant (between sample variation is more important than
+  # treatment type)
+
+summary(mixed_sample_dr)  # sample explains most of the variance 
+# std. error is > treatment estimate 
+Anova(mixed_sample_dr, type = "III")  # treatment_type is not significant 
+# no difference between control and treatment = good, implies acclimation of DR
+
+
+### Carbon Gain Models ----
 cgain <- read.csv("Data/c_gain_long.csv")
 
 # extracting only NP data (just need one of them really because I want to see if the ratio
