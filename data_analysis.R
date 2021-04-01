@@ -128,64 +128,43 @@ line.line.intersection(t1_neg, t2_neg, treatment_y_neg,
 ### Models for NP ----
 # checking for normality of the data 
 (hist <- ggplot(fulldata, aes(x = np_DW)) +
-             geom_histogram(color = "black") +
-             theme_classic() +
-             scale_y_continuous(expand = c(0,0)))
-
-## General linear models 
-null_np <- lm(np_DW ~ 1, data = np_full)
-temp_np <- lm(np_DW ~ temp, data = np_full)
-temp_ttype_np <- lm(np_DW ~ temp + treatment_type, data = np_full)
-temp_sample_np <- lm(np_DW ~ temp + sample, data = np_full)
-temp_ttype_sample_np <- lm(np_DW ~ temp + treatment_type + sample, data = np_full)
-temp_ttype_int_np <- lm(np_DW ~ temp*treatment_type, data = np_full)
-temp_sample_int_np <- lm(np_DW ~ temp*sample, data = np_full)
-temp_ttype_int_sample_np <- lm(np_DW ~ temp + treatment_type*sample, data = np_full)
-temp_int_ttype_sample_np <- lm(np_DW ~ temp*treatment_type + sample, data = np_full)
-all_int_np <- lm(np_DW ~ temp*treatment_type*sample, data = np_full)
-
-AIC(null_np, temp_np, temp_ttype_np, temp_sample_np, temp_ttype_sample_np, temp_ttype_int_np, 
-    temp_sample_int_np, temp_ttype_int_sample_np, temp_int_ttype_sample_np, all_int_np)
-# all_int_np is the best model of these 
-
-# checking model assumptions 
-plot(all_int_np)   # outliers: row 14, 15, 18
-shapiro.test(resid(all_int_np))   # p << 0.05, residuals are not normally distributed 
-bptest(all_int_np)   #  p > 0.05 (just), no heteroskedasticity 
-
-# removing outliers
-np_full_edit <- np_full[-c(14, 15, 18), ]
-all_int_np_edit <- lm(np_DW ~ temp*treatment_type*sample, data = np_full_edit)
-
-plot(all_int_np_edit)
-shapiro.test(resid(all_int_np_edit))  # residuals still not normally distributed 
-bptest(all_int_np_edit)  # p >> 0.05, no heteroskasticity 
+           geom_histogram(color = "black") +
+           theme_classic() +
+           scale_y_continuous(expand = c(0,0)))
 
 ## Mixed effects models 
 mixed_null_np <- lmer(np_DW ~ 1 + (1|sample), data = np_full, REML = F)
 mixed_sample_np <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = np_full, REML = T)
-  # sample as a random effect because sample needs to be controlled for, but I am not
-  # interested in the direct relationship of it with np_DW 
-
 mixed_int_sample_np <- lmer(np_DW ~ temp*treatment_type + (1|sample), data = np_full, REML = T)
+# sample as a random effect because sample needs to be controlled for, but I am not
+# interested in the direct relationship of it with np_DW 
 
+# comparing the models 
 #### to compare models you need REML = F, but to do an F-test rather than chi squared test
   # you need to REML = T 
+AIC(mixed_null_np, mixed_sample_np, mixed_int_sample_np)  # lowest AIC = mixed_sample_np
+  # also has fewer degrees of freedom than mixed_int_sample_np
+
 anova(mixed_null_np, mixed_sample_np)  # mixed_sample_np is better than the null model
 anova(mixed_null_np, mixed_int_sample_np)  # mixed_int_sample_np is better than null model
 anova(mixed_sample_np, mixed_int_sample_np)  # interaction is NOT significantly better
 
-## Comparing mixed and general linear models 
-anova(mixed_sample_np, all_int_np)  # all_int_np is better at explaining the relationship
+# model outputs
+confint(mixed_sample_np)  # temp: -0.146 to -0.0817
+                          # treatment_type: 0.253 to 2.665
 
-summary(all_int_np_edit)  # adjusted R^2 = 0.7594
-# idk what it means exactly, but the interactions between temp and T1-T6 and C6 = significant
-# so significant interaction terms, but the samples in themselves do not significantly 
-  # impact np_DW 
-anova(all_int_np_edit)  # all are significant
+summary(mixed_sample_np)  # sample explains quite a bit of the excess variation 
+                          # temp: -0.114 ± 0.0163 (within the confidence intervals)
+                          # treatment_type: 1.457 ± 0.621 (within the confidence intervals)
+# treatment_type and temp significantly effect NP
+# they're significantly different from 0 according to the CI's
+0.9157/(0.9157+1.4169)    # sample explains 39.3% of the residual variation 
+                          ##### (or however you explain it)
 
-summary(mixed_sample_np)  # sample quite a bit of the excess variation 
-Anova(mixed_sample_np, type = "III", test = "F")  # both temp and treatment_type significant effect NP
+Anova(mixed_sample_np, type = "III", test = "F")  # temp: F = 49.05, p = 02.66e-9
+                                                  # treatment_type: F = 5.50, p = 0.041
+# temp and treatment_type significantly effect NP after accounting for between sample variation
+
 # type 3 = how much variability in NP can be attributed to be temp after accounting 
   # for everything else. then how much can be attributed to treatment after accounting for 
   # everything else, etc. 
@@ -195,46 +174,35 @@ Anova(mixed_sample_np, type = "III", test = "F")  # both temp and treatment_type
 
 
 ### Models for DR ----
-## General linear models 
-null_dr <- lm(np_DW ~ 1, data = dr_full)
-temp_dr <- lm(np_DW ~ temp, data = dr_full)
-temp_ttype_dr <- lm(np_DW ~ temp + treatment_type, data = dr_full)
-temp_sample_dr <- lm(np_DW ~ temp + sample, data = dr_full)
-temp_ttype_sample_dr <- lm(np_DW ~ temp + treatment_type + sample, data = dr_full)
-temp_ttype_int_dr <- lm(np_DW ~ temp*treatment_type, data = dr_full)
-temp_sample_int_dr <- lm(np_DW ~ temp*sample, data = dr_full)
-temp_ttype_int_sample_dr <- lm(np_DW ~ temp + treatment_type*sample, data = dr_full)
-temp_int_ttype_sample_dr <- lm(np_DW ~ temp*treatment_type + sample, data = dr_full)
-all_int_dr <- lm(np_DW ~ temp*treatment_type*sample, data = dr_full)
-
-AIC(null_dr, temp_dr, temp_ttype_dr, temp_sample_dr, temp_ttype_sample_dr, temp_ttype_int_dr, 
-    temp_sample_int_dr, temp_ttype_int_sample_dr, temp_int_ttype_sample_dr, all_int_dr)
-# all_int_dr and temp_sample_int_dr have the same AIC value and same degrees of freedom
-# use temp_sample_int_dr 
-
 ## Mixed effect models 
 mixed_null_dr <- lmer(np_DW ~ 1 + (1|sample), data = dr_full, REML = F)
 mixed_sample_dr <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = dr_full, REML = T)
 mixed_int_sample_dr <- lmer(np_DW ~ temp*treatment_type + (1|sample), 
                             data = dr_full, REML = F)
 
-anova(mixed_null_dr, mixed_sample_dr)  # mixed_sample_dr is better than the null model
-anova(mixed_null_dr, mixed_int_sample_dr)  # mixed_int_sample_dr is better than null model
+# comparing the models 
+AIC(mixed_null_dr, mixed_sample_dr, mixed_int_sample_dr)  # mixed_int_sample_dr = lowest AIC
+
 anova(mixed_sample_dr, mixed_int_sample_dr)  # interaction is NOT significantly better
+  # extra coefficients make it not worth it 
 
-## Comparing mixed and general linear models 
-anova(mixed_sample_dr, all_int_dr)  # all_int_dr is better at explaining the relationship
-
-summary(all_int_dr)  # adjusted R^2 = 0.9591
-# only temp and a few temp*sample interactions (2 control, 3 treatment) are significant 
-anova(all_int_dr)  # treatment_type and temp*treatment_type are NOT significant 
-# sample and temp*sample are significant (between sample variation is more important than
-  # treatment type)
-# the significant interaction (temp*sample) = the response of np_DW to temp depends on sample
+# model outputs 
+confint(mixed_sample_dr)  # temp: -0.243 to -0.192 
+                          # treatment_type: -1.492 to 1.425 
 
 summary(mixed_sample_dr)  # sample explains most of the variance 
-# std. error is > treatment estimate 
-Anova(mixed_sample_dr, type = "III", test = "F")  # treatment_type is not significant 
+                          # temp: -0.217 ± 0.0130 
+                          # treatment_type: -0.0338 ± 0.751
+# treatment std. error is >> treatment estimate 
+  # implies treatment_type does not have a large effect on DR 
+# temp is significant, treatment_type is not 
+# from the CI's, temp is significantly different from 0 but treatment_type isn't (CI's include 0)
+  # treatment_type could include 0 = has no effect on DR, so therefore it's not significant 
+1.5371/(1.5371+0.9043)  # sample explains 63.0% of the residual variation
+
+Anova(mixed_sample_dr, type = "III", test = "F")  # temp: F = 280.39, p = <2e-16 
+                                                  # treatment_type: F = 0.0020, p = 0.965
+# treatment_type is not significant, temp is significant 
 # no difference between control and treatment = good, implies acclimation of DR
 
 # a large F ratio = means are not equal, variabiltiy between group means is larger than within
