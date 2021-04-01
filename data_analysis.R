@@ -297,7 +297,7 @@ line.line.intersection(t1_lc, t2_lc, treatment_y_lc, treatment_y2_lc,
                        interior.only = FALSE)               # x = 65.5 µE m^-2 s^-1
 
 
-### Light Response Curve Statistics ----
+### Light Response Curve LSP Statistics ----
 full_light <- read.csv("Data/full_light_responses.csv")
 
 light_sum <- full_light %>% 
@@ -384,3 +384,61 @@ t.test(LSPcuv ~ treatment_type, data = light_sum)  # p = 0.042 (significant diff
   # (different to pre-averaged data)
 
 
+### Light Response Curve LCP Statistics ----
+# visualizing the light compensation point for all samples
+(lightcomp_plot_facet <- ggplot(full_light, aes(x = Lcuv, y = CO2)) +
+                           geom_point(aes(color = treatment_type)) +
+                           geom_line(aes(color = treatment_type)) +
+                           facet_wrap(~sample) +
+                           geom_hline(yintercept = 0))
+
+## Determining the intersection points for LCP
+# C1 and T1 have no light compensation point (are never >0)
+light_sum_lcp <- light_sum %>% 
+                    filter(sample == "C2" |
+                           sample == "C3" | 
+                           sample == "T2" |
+                           sample == "T3")
+
+# C2 intersection point
+c2_1b <- c(100, -1.25)
+c2_2b <- c(200, 1.39)
+control_y_c2b <- c(100, 0)
+control_y2_c2b <- c(200, 0)
+
+line.line.intersection(c2_1b, c2_2b, control_y_c2b, control_y2_c2b, 
+                       interior.only = FALSE)               # x = 147.3 µE m^-2 s^-1
+
+# C3 intersection point
+c3_1b <- c(50, -1.18)
+c3_2b <- c(100, 1.60)
+control_y_c3b <- c(500, 0)
+control_y2_c3b <- c(100, 0)
+
+line.line.intersection(c3_1b, c3_2b, control_y_c3b, control_y2_c3b, 
+                       interior.only = FALSE)               # x = 71.2 µE m^-2 s^-1
+
+# T2 intersection point
+t2_1b <- c(12, -2.27)
+t2_2b <- c(25, 0.56)
+treatment_y_t2b <- c(10, 0)
+treatment_y2_t2b <- c(50, 0)
+
+line.line.intersection(t2_1b, t2_2b, treatment_y_t2b, treatment_y2_t2b, 
+                       interior.only = FALSE)               # x = 22.4 µE m^-2 s^-1
+
+# T3 intersection point
+t3_1b <- c(25, -0.90)
+t3_2b <- c(50, 6.95)
+treatment_y_t3b <- c(20, 0)
+treatment_y2_t3b <- c(60, 0)
+
+line.line.intersection(t3_1b, t3_2b, treatment_y_t3b, treatment_y2_t3b, 
+                       interior.only = FALSE)               # x = 27.9 µE m^-2 s^-1
+
+light_sum_lcp$LCPcuv <- c(147.3, 71.2, 22.4, 27.9)
+
+## T-Test for LCP
+t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significantly different)
+# using the means of the calculated LCPcuv, control = 109.25 and treatment = 25.15 
+# (different to pre-averaged data, a lot lower)
