@@ -198,6 +198,7 @@ summary(mixed_sample_dr)  # sample explains most of the variance
 # temp is significant, treatment_type is not 
 # from the CI's, temp is significantly different from 0 but treatment_type isn't (CI's include 0)
   # treatment_type could include 0 = has no effect on DR, so therefore it's not significant 
+# basically means the difference between treatments could be 0 
 1.5371/(1.5371+0.9043)  # sample explains 63.0% of the residual variation
 
 Anova(mixed_sample_dr, type = "III", test = "F")  # temp: F = 280.39, p = <2e-16 
@@ -232,3 +233,154 @@ aov_c <- aov(c_ttype)  # there's no significant difference between treatment typ
 
 c_ttest <- t.test(ratio ~ temp, data = cgain)
 # to do t test, the grouping factor (predictor) can only have 2 levels 
+
+
+### Average Light Response Curve Calculations ----
+light <- read.csv("Data/avg_light_responses.csv")
+
+summary(light)  # max control = 2.881, max treatment = 14.420 
+
+0.9*2.881  # 90% max control = 2.593
+0.9*14.420  # 90% max treatment = 12.978
+
+## Determining the intersection points for 90% LSP
+# visualizing the 90% light saturation point 
+(light_plot <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
+    geom_point(aes(color = treatment_type)) +
+    geom_line(aes(color = treatment_type)) +
+    facet_wrap(~treatment_type))
+
+hline_light <- data.frame(z = c(2.593, 12.978), treatment_type = factor(c("control", "treatment")))
+
+(lightsat_plot <- light_plot + 
+                    geom_hline(data = hline_light, aes(yintercept = z)))
+
+# control intersection point
+c1_l <- c(500, 1.069)
+c2_l <- c(1000, 2.881)
+control_y_l <- c(500, 2.593)
+control_y2_l <- c(1000, 2.593)
+
+line.line.intersection(c1_l, c2_l, control_y_l, control_y2_l, 
+                       interior.only = FALSE)               # x = 920.5 µE m^-2 s^-1
+
+# treatment intersection point
+t1_l <- c(200, 9.200)
+t2_l <- c(500, 14.420)
+treatment_y_l <- c(200, 12.978)
+treatment_y2_l <- c(500, 12.978)
+
+line.line.intersection(t1_l, t2_l, treatment_y_l, treatment_y2_l, 
+                       interior.only = FALSE)               # x = 417 µE m^-2 s^-1
+
+## Determining the intersection points for LCP
+# visualizing the light compensation point  
+(lightcomp_plot <- light_plot + 
+                      geom_hline(yintercept = 0))
+
+# control intersection point
+c1_lc <- c(200, -1.809)
+c2_lc <- c(500, 1.069)
+control_y_lc <- c(200, 0)
+control_y2_lc <- c(500, 0)
+
+line.line.intersection(c1_lc, c2_lc, control_y_lc, control_y2_lc, 
+                       interior.only = FALSE)               # x = 388.6 µE m^-2 s^-1
+
+# treatment intersection point
+t1_lc <- c(50, -1.620)
+t2_lc <- c(100, 3.600)
+treatment_y_lc <- c(50, 0)
+treatment_y2_lc <- c(100, 0)
+
+line.line.intersection(t1_lc, t2_lc, treatment_y_lc, treatment_y2_lc, 
+                       interior.only = FALSE)               # x = 65.5 µE m^-2 s^-1
+
+
+### Light Response Curve Statistics ----
+full_light <- read.csv("Data/full_light_responses.csv")
+
+light_sum <- full_light %>% 
+                group_by(sample) %>% 
+                summarize(maxCO2 = max(CO2)) %>% 
+                mutate(LSPx90 = 0.9*maxCO2)
+
+# fixing negative values so 90% of the LSP is correct
+-9.70*1.1   # -10.67 
+-15.00*1.1  # -16.5
+
+light_sum$LSPx90[light_sum$maxCO2 == -9.70] <- -10.67
+light_sum$LSPx90[light_sum$maxCO2 == -15.00] <- -16.5
+
+## Determining the intersection points for 90% LSP
+# visualizing the 90% light saturation points for all samples
+(light_plot_facet <- ggplot(full_light, aes(x = Lcuv, y = CO2)) +
+                        geom_point(aes(color = treatment_type)) +
+                        geom_line(aes(color = treatment_type)) +
+                        facet_wrap(~sample) +
+                        geom_hline(data = light_sum, aes(yintercept = LSPx90)))
+
+# C1 intersection point
+c1_1 <- c(500, -11.07)
+c1_2 <- c(1000, -10.54)
+control_y_c1 <- c(500, -10.670)
+control_y2_c1 <- c(1100, -10.670)
+
+line.line.intersection(c1_1, c1_2, control_y_c1, control_y2_c1, 
+                       interior.only = FALSE)               # x = 877.4 µE m^-2 s^-1
+
+# C2 intersection point
+c2_1 <- c(500, 4.33)
+c2_2 <- c(1000, 5.36)
+control_y_c2 <- c(500, 4.824)
+control_y2_c2 <- c(1000, 4.824)
+
+line.line.intersection(c2_1, c2_2, control_y_c2, control_y2_c2, 
+                       interior.only = FALSE)               # x = 739.8 µE m^-2 s^-1
+
+# C3 intersection point
+c3_1 <- c(500, 9.95)
+c3_2 <- c(1000, 13.83)
+control_y_c3 <- c(500, 12.960)
+control_y2_c3 <- c(1000, 12.960)
+
+line.line.intersection(c3_1, c3_2, control_y_c3, control_y2_c3, 
+                       interior.only = FALSE)               # x = 887.9 µE m^-2 s^-1
+
+# T1 intersection point
+t1_1 <- c(50, -16.90)
+t1_2 <- c(100, -15.90)
+treatment_y_t1 <- c(50, -16.500)
+treatment_y2_t1 <- c(100, -16.500)
+
+line.line.intersection(t1_1, t1_2, treatment_y_t1, treatment_y2_t1, 
+                       interior.only = FALSE)               # x = 70.0 µE m^-2 s^-1
+
+# T2 intersection point
+t2_1 <- c(200, 17.54)
+t2_2 <- c(500, 23.57)
+treatment_y_t2 <- c(200, 21.213)
+treatment_y2_t2 <- c(500, 21.213)
+
+line.line.intersection(t2_1, t2_2, treatment_y_t2, treatment_y2_t2, 
+                       interior.only = FALSE)               # x = 382.7 µE m^-2 s^-1
+
+# T3 intersection point
+t3_1 <- c(200, 25.05)
+t3_2 <- c(500, 35.00)
+treatment_y_t3 <- c(200, 34.920)
+treatment_y2_t3 <- c(500, 34.920)
+
+line.line.intersection(t3_1, t3_2, treatment_y_t3, treatment_y2_t3, 
+                       interior.only = FALSE)               # x = 497.6 µE m^-2 s^-1
+
+light_sum$LSPcuv <- c(877.4, 739.8, 887.9, 70.0, 382.7, 497.6)
+light_sum$treatment_type <- c("control", "control", "control", 
+                              "treatment", "treatment", "treatment")              
+
+## T-Test for LSP
+t.test(LSPcuv ~ treatment_type, data = light_sum)  # p = 0.042 (significant difference!)
+# using the means of the calculated LSPcuv, control = 835 and treatment = 316 
+  # (different to pre-averaged data)
+
+
