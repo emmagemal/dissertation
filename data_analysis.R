@@ -209,32 +209,6 @@ Anova(mixed_sample_dr, type = "III", test = "F")  # temp: F = 280.39, p = <2e-16
 # a large F ratio = means are not equal, variabiltiy between group means is larger than within
   # = means it's significant
 
-### Carbon Gain Models ----
-cgain <- read.csv("Data/c_gain_long.csv")
-
-# extracting only NP data (just need one of them really because I want to see if the ratio
-# between NP and DR changes, and the percentage/ratio is already calculated)
-cgain_np <- cgain %>% 
-              filter(type == "NP")
-
-# creating models 
-null_c <- lm(percent ~ 1, data = cgain_np)
-c_temp <- lm(percent ~ temp, data = cgain_np)
-c_ttype <- lm(percent ~ temp + treatment_type, data = cgain_np)
-c_int <- lm(percent ~ temp*treatment_type, data = cgain_np)
-
-c_mixed <- lmer(percent ~ temp + (1|treatment_type), data = cgain_np)  # treatment_type
-                                                            # explains little variation
-summary(c_ttype)
-
-AIC(null_c, c_temp, c_ttype, c_int)  # all better than null model, others aren't very different
-aov_c <- aov(c_ttype)  # there's no significant difference between treatment types it seems 
-
-
-c_ttest <- t.test(ratio ~ temp, data = cgain)
-# to do t test, the grouping factor (predictor) can only have 2 levels 
-
-
 ### Average Light Response Curve Calculations ----
 light <- read.csv("Data/avg_light_responses.csv")
 
