@@ -153,7 +153,7 @@ anova(mixed_sample_np, mixed_int_sample_np)  # interaction is NOT significantly 
 confint(mixed_sample_np)  # temp: -0.146 to -0.0817
                           # treatment_type: 0.253 to 2.665
 
-summary(mixed_sample_np)  # sample explains quite a bit of the excess variation 
+summary(mixed_sample_np)  # sample explains quite a bit of the residual variance 
                           # temp: -0.114 ± 0.0163 (within the confidence intervals)
                           # treatment_type: 1.457 ± 0.621 (within the confidence intervals)
 # treatment_type and temp significantly effect NP
@@ -161,16 +161,9 @@ summary(mixed_sample_np)  # sample explains quite a bit of the excess variation
 0.9157/(0.9157+1.4169)    # sample explains 39.3% of the residual variation 
                           ##### (or however you explain it)
 
-Anova(mixed_sample_np, type = "III", test = "F")  # temp: F = 49.05, p = 02.66e-9
+Anova(mixed_sample_np, type = "III", test = "F")  # temp: F = 49.05, p = 2.66e-9
                                                   # treatment_type: F = 5.50, p = 0.041
 # temp and treatment_type significantly effect NP after accounting for between sample variation
-
-# type 3 = how much variability in NP can be attributed to be temp after accounting 
-  # for everything else. then how much can be attributed to treatment after accounting for 
-  # everything else, etc. 
-# type 1 would be how much is attributed to temp, then how much of the leftover variability
-  # is explained by treatment, then how much that's left is explained by the rest, etc. 
-  # (order matters for type 1)
 
 
 ### Models for DR ----
@@ -190,62 +183,61 @@ anova(mixed_sample_dr, mixed_int_sample_dr)  # interaction is NOT significantly 
 confint(mixed_sample_dr)  # temp: -0.243 to -0.192 
                           # treatment_type: -1.492 to 1.425 
 
-summary(mixed_sample_dr)  # sample explains most of the variance 
+summary(mixed_sample_dr)  # sample explains a lot of the residual variance 
                           # temp: -0.217 ± 0.0130 
                           # treatment_type: -0.0338 ± 0.751
 # treatment std. error is >> treatment estimate 
   # implies treatment_type does not have a large effect on DR 
 # temp is significant, treatment_type is not 
-# from the CI's, temp is significantly different from 0 but treatment_type isn't (CI's include 0)
-  # treatment_type could include 0 = has no effect on DR, so therefore it's not significant 
-# basically means the difference between treatments could be 0 
 1.5371/(1.5371+0.9043)  # sample explains 63.0% of the residual variation
 
 Anova(mixed_sample_dr, type = "III", test = "F")  # temp: F = 280.39, p = <2e-16 
                                                   # treatment_type: F = 0.0020, p = 0.965
 # treatment_type is not significant, temp is significant 
-# no difference between control and treatment = good, implies acclimation of DR
-
-# a large F ratio = means are not equal, variabiltiy between group means is larger than within
-  # = means it's significant
 
 ### Average Light Response Curve Calculations ----
-light <- read.csv("Data/avg_light_responses.csv")
+light <- read.csv("Data/full_light_responses.csv")
 
-summary(light)  # max control = 2.881, max treatment = 14.420 
+light_avg <- light %>% 
+                group_by(Lcuv, treatment_type) %>% 
+                summarise(avgCO2 = mean(CO2)) %>% 
+                filter(Lcuv <= 1000)
 
-0.9*2.881  # 90% max control = 2.593
-0.9*14.420  # 90% max treatment = 12.978
+summary(light_avg$avgCO2[light_avg$treatment_type == "control"])  # max control = 2.883
+summary(light_avg$avgCO2[light_avg$treatment_type == "treatment"])  # max treatment = 14.423 
+
+0.9*2.883  # 90% max control = 2.595
+0.9*14.423  # 90% max treatment = 12.981
 
 ## Determining the intersection points for 90% LSP
 # visualizing the 90% light saturation point 
-(light_plot <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
-    geom_point(aes(color = treatment_type)) +
-    geom_line(aes(color = treatment_type)) +
-    facet_wrap(~treatment_type))
+(light_plot <- ggplot(light_avg, aes(x = Lcuv, y = avgCO2)) +
+                  geom_point(aes(color = treatment_type)) +
+                  geom_line(aes(color = treatment_type)) +
+                  facet_wrap(~treatment_type))
 
-hline_light <- data.frame(z = c(2.593, 12.978), treatment_type = factor(c("control", "treatment")))
+hline_light <- data.frame(z = c(2.595, 12.981), treatment_type = factor(c("control", "treatment")))
 
 (lightsat_plot <- light_plot + 
                     geom_hline(data = hline_light, aes(yintercept = z)))
 
 # control intersection point
 c1_l <- c(500, 1.069)
-c2_l <- c(1000, 2.881)
-control_y_l <- c(500, 2.593)
-control_y2_l <- c(1000, 2.593)
+c2_l <- c(1000, 2.883)
+control_y_l <- c(500, 2.595)
+control_y2_l <- c(1000, 2.595)
 
 line.line.intersection(c1_l, c2_l, control_y_l, control_y2_l, 
-                       interior.only = FALSE)               # x = 920.5 µE m^-2 s^-1
+                       interior.only = FALSE)               # x = 920.6 µE m^-2 s^-1
 
 # treatment intersection point
 t1_l <- c(200, 9.200)
-t2_l <- c(500, 14.420)
-treatment_y_l <- c(200, 12.978)
-treatment_y2_l <- c(500, 12.978)
+t2_l <- c(500, 14.423)
+treatment_y_l <- c(200, 12.981)
+treatment_y2_l <- c(500, 12.981)
 
 line.line.intersection(t1_l, t2_l, treatment_y_l, treatment_y2_l, 
-                       interior.only = FALSE)               # x = 417 µE m^-2 s^-1
+                       interior.only = FALSE)               # x = 417.2 µE m^-2 s^-1
 
 ## Determining the intersection points for LCP
 # visualizing the light compensation point  
@@ -272,9 +264,7 @@ line.line.intersection(t1_lc, t2_lc, treatment_y_lc, treatment_y2_lc,
 
 
 ### Light Response Curve LSP Statistics ----
-full_light <- read.csv("Data/full_light_responses.csv")
-
-light_sum <- full_light %>% 
+light_sum <- light %>% 
                 group_by(sample) %>% 
                 summarize(maxCO2 = max(CO2)) %>% 
                 mutate(LSPx90 = 0.9*maxCO2)
@@ -288,7 +278,7 @@ light_sum$LSPx90[light_sum$maxCO2 == -15.00] <- -16.5
 
 ## Determining the intersection points for 90% LSP
 # visualizing the 90% light saturation points for all samples
-(light_plot_facet <- ggplot(full_light, aes(x = Lcuv, y = CO2)) +
+(light_plot_facet <- ggplot(light, aes(x = Lcuv, y = CO2)) +
                         geom_point(aes(color = treatment_type)) +
                         geom_line(aes(color = treatment_type)) +
                         facet_wrap(~sample) +
@@ -360,7 +350,7 @@ t.test(LSPcuv ~ treatment_type, data = light_sum)  # p = 0.042 (significant diff
 
 ### Light Response Curve LCP Statistics ----
 # visualizing the light compensation point for all samples
-(lightcomp_plot_facet <- ggplot(full_light, aes(x = Lcuv, y = CO2)) +
+(lightcomp_plot_facet <- ggplot(light, aes(x = Lcuv, y = CO2)) +
                            geom_point(aes(color = treatment_type)) +
                            geom_line(aes(color = treatment_type)) +
                            facet_wrap(~sample) +
