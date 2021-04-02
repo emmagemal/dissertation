@@ -14,71 +14,107 @@ avgdata <- avgdata %>%
                      type = as.factor(type))
 str(avgdata)
 
-# temperature curve plots
-(all_plot <- ggplot(avgdata, aes(x = temp, y = avgDW)) +
-                geom_point(aes(color = treatment_type, shape = type), 
-                           size = 2.5, alpha = 0.85))
+# plotting temperature response curves using dry weight  
+(dw_plot <- ggplot(avgdata, aes(x = temp, y = avgDW, color = treatment_type)) +
+              geom_hline(yintercept = 0, color = "grey", size = 0.8) +  # optional to keep              
+              geom_point(aes(shape = type), size = 2.2) +
+              geom_line(aes(linetype = type)) +
+              ylab(label = expression(Average~NP~per~dry~weight~(nmol~g^-1~s^-1))) +
+              xlab(label = "Temperature (˚C)") +              
+              geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW), width = 0.5) +
+              theme_bw() +
+              theme(axis.title.x = 
+                      element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                    axis.title.y = 
+                      element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                    panel.grid.minor = element_blank()) +
+              theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+              scale_color_manual(values = c("#12A7B8", "#004452"),
+                                 name = c("Treatment Type", "Process"),
+                                 labels = c("Control", "Treatment")) +
+              scale_linetype_discrete(name = c("Process", "Treatment Type")) +
+              scale_shape_discrete(name = c("Process", "Treatment Type")))  
 
-# FOR DISSERTATION 
-(facet_plot <- ggplot(avgdata, aes(x = temp, y = avgDW)) +
-                  geom_hline(yintercept = 0, color = "grey", size = 1) +  # optional to keep              
-                  geom_point(aes(shape = treatment_type, color = treatment_type),
-                             size = 2.2) +
-                  geom_line(aes(color = treatment_type)) +
-                  facet_wrap(~type, nrow = 1) +
-                  geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW,
-                                    color = treatment_type),
-                                width = 0.5) +
-                  scale_color_manual(values = c("#12A7B8", "#004452")) +
-                  theme_bw())  
-# respiration has acclimated to remain exactly the same as the control!! 
+ggsave("Figures/diss_figures/t_response_DW.png", plot = dw_plot, 
+       width = 6.5, height = 5.5, units = "in")
 
-# using chlorophyll data instead
-(facet_plot_chl <- ggplot(avgdata, aes(x = temp, y = avgChl)) +
-                      geom_hline(yintercept = 0, color = "grey", size = 1) +  # optional to keep              
-                      geom_point(aes(shape = treatment_type, color = treatment_type),
-                                 size = 2.2) +
-                      geom_line(aes(color = treatment_type)) +
-                      facet_wrap(~type, nrow = 1) +
-                      scale_color_manual(values = c("#12A7B8", "#004452")) +
-                      theme_bw())
-# basically the same relationship, which is good! Slightly different values of course 
-# use to show that the relationship is the same, and explain that DW is used throughout
-  # in order to allow scaling and comparison with other vegetation types 
+# plotting curves using chlorophyll content 
+(chl_plot <- ggplot(avgdata, aes(x = temp, y = avgChl, color = treatment_type)) +
+                geom_hline(yintercept = 0, color = "grey", size = 0.8) +  # optional to keep              
+                geom_point(aes(shape = type), size = 2.2) +
+                geom_line(aes(linetype = type)) +
+                geom_errorbar(aes(ymin = avgChl-se_Chl, ymax = avgChl+se_Chl), width = 0.5) +
+                ylab(label = 
+                       expression(Average~NP~per~chlorophyll~content~(nmol~mg^-1~s^-1))) +
+                xlab(label = "Temperature (˚C)") +              
+                theme_bw() +
+                theme(axis.title.x = 
+                        element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                      axis.title.y = 
+                        element_text(margin = margin(t = 0, r = 7, b = 0, l = 0)), 
+                        panel.grid.minor = element_blank()) +
+                theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+                scale_color_manual(values = c("#12A7B8", "#004452"),
+                                   name = c("Treatment Type", "Process"),
+                                   labels = c("Control", "Treatment")) +
+                scale_linetype_discrete(name = c("Process", "Treatment Type")) +
+                scale_shape_discrete(name = c("Process", "Treatment Type")) +
+                scale_y_continuous(breaks = seq(-20, 10, 5)))
+
+ggsave("Figures/diss_figures/t_response_chl.png", plot = chl_plot, 
+      width = 6.5, height = 5.5, units = "in")
 
 
 ## Carbon Gain Efficiency ----
 cgain <- read.csv("Data/c_gain_long.csv") 
-cgain_wide <- read.csv("Data/c_gain_efficiency.csv")  # if keeping the 2nd plot 
 
-# making stacked plot
-# FOR DISSERTATION
+str(cgain)
+
+# making stacked plots of DR:NP 
 (stacked_both <- ggplot(cgain, aes(x = temp, y = percent, fill = type)) +
                     geom_bar(position = "fill", stat = "identity") +
+                    ylab(label = "Percentage of gross photosynthesis (%)") +
+                    xlab(label = "Temperature (˚C)") +              
                     facet_wrap(~treatment_type, nrow = 1) +
-                    scale_fill_manual(values = c("#FF6D33", "#7A292A")) +
-                    scale_y_continuous(expand = expansion(mult = c(0, 0.01))) +  # OR
-               #    scale_y_continuous(expand = c(0,0)) +
-                    theme_bw())
-# idk if I need this one: 
-# change in ratio between respiration and (gross) photosynthesis 
-(dr_gp_plot <- ggplot(cgain_wide, aes(x = temp, y = DRratio_DW)) +
-                  geom_point(aes(color = treatment_type), size = 2) +
-                  geom_line(aes(color = treatment_type, linetype = treatment_type)) +
-                  scale_color_manual(values = c("#12A7B8", "#004452")))
-# treatment appears to have acclimated, has lower ratios = has smaller R 
- # or larger GP at higher temperatures 
+                    theme_bw() +
+                    theme(axis.title.x = 
+                            element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                          axis.title.y = 
+                            element_text(margin = margin(t = 0, r = 5, b = 0, l = 0))) +
+                    theme(plot.margin = unit(c(1, 1, 1, 1), "cm"),
+                          panel.spacing = unit(1, "cm")) + 
+                    scale_fill_manual(values = c("#FF6D33", "#7A292A"),
+                                      name = "Process") +  # could change the name 
+                    scale_y_continuous(expand = expansion(mult = c(0, 0.01)),
+                                       labels = scales::percent_format(suffix = "")))  # OR
+               #    scale_y_continuous(expand = c(0,0)))
+
+ggsave("Figures/diss_figures/c_gain_stacked2.png", plot = stacked_both, 
+       width = 8, height = 5.5, units = "in")
 
 
 ## Acclimation Ratios ----
-ratios <- read.csv("Data/acclim_ratios.csv")
+ratios <- read.csv("Data/acclim_ratios_new.csv")
 
-(ratio_plot <- ggplot(ratios, aes(x = temp, y = DWc.t)) +
+(ratio_plot <- ggplot(ratios, aes(x = temp, y = DWt.c_any)) +
                   geom_point(aes(color = type, shape = type), size = 2.5, alpha = 0.9) +
-               #  geom_line(aes(color = type)) +  # don't know if I need to connect them
                   geom_hline(yintercept = 1, linetype = "dotted") +
+                  ylab(label = "Acclimation ratio") +
+                  xlab(label = "Temperature (˚C)") +
                   theme_bw() +
-                  scale_color_manual(values = c("#FF6D33", "#7A292A")))
+                  theme(axis.title.x = 
+                          element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                        axis.title.y = 
+                          element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                        panel.grid.minor = element_blank()) +
+                  theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                  scale_color_manual(values = c("#FF6D33", "#7A292A"),
+                                     name = "Process") +
+                  scale_shape_discrete(name = "Process") + # can change the name
+                  scale_y_continuous(limits = c(0, 6)))
+
+ggsave("Figures/diss_figures/acclim_ratio_plot.png", plot = ratio_plot, 
+       width = 6, height = 5.5, units = "in")
 
 # DR = 10-30 degrees the dark respiration ratios are nearly identical/ very similar
   # could imply Q10 is the same for those temperatures, so >5 degrees 
@@ -90,34 +126,39 @@ ratios <- read.csv("Data/acclim_ratios.csv")
 
 
 ## Light Response Curves ----
-light <- read.csv("Data/light_responses.csv")
+light <- read.csv("Data/full_light_responses.csv") 
 str(light)
-summary(light)  # max control = 2.881, max treatment = 14.420 
 
-0.9*2.881  # 90% max control = 2.593
-0.9*14.420  # 90% max treatment = 12.978
-
-light <- light %>% 
-            pivot_longer(cols = 2:3,
-                         names_to = "treatment_type",
-                         names_prefix = "avgCO2_",
-                         values_to = "avgCO2")
-
-light_control <- light %>% 
-                  filter(treatment_type == "control")
-light_treatment <- light %>% 
-                      filter(treatment_type == "treatment")
+# calculating averages, standard deviation and standard error
+light_sum <- light %>% 
+                group_by(Lcuv, treatment_type) %>% 
+                summarise(avgCO2 = mean(CO2),
+                          sdCO2 = sd(CO2)) %>% 
+                mutate(seCO2 = sdCO2/sqrt(3)) %>% 
+                na.omit()
 
 # plotting the light response curves
-vline <- data.frame(z = c(750, 300), treatment_type = factor(c("control", "treatment")))
-
-(light_plots <- ggplot(light, aes(x = Lcuv, y = avgCO2)) +
+(light_plots <- ggplot(light_sum, aes(x = Lcuv, y = avgCO2)) +
                   geom_point(aes(color = treatment_type), size = 2.2) +
                   geom_line(aes(color = treatment_type)) +
-                  facet_wrap(~treatment_type) +
-             #     geom_vline(data = vline, aes(xintercept = z), size = 10, alpha = 0.3) +              
+                  geom_errorbar(aes(ymin = avgCO2-seCO2, ymax = avgCO2+seCO2, 
+                                    color = treatment_type, width = 20), alpha = 0.8) + 
+                  ylab(label = expression(paste(
+                       "Average ", "\u0394", "CO"[2], " (rel. ppm)"))) +  # check units 
+                  xlab(label = expression(paste(
+                       "Photon flux density ", "(µE ", "m"^-2, " s"^-1, ")"))) +
+                  geom_hline(yintercept = 0) +               
                   theme_bw() +
-                  scale_color_manual(values = c("#12A7B8", "#004452")))
+                  theme(panel.grid.minor = element_blank(),
+                        axis.title.x = 
+                          element_text(margin = margin(t = 10, r = 0, b = 0, l = 0))) +
+                  theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                  scale_color_manual(values = c("#12A7B8", "#004452"),
+                                     name = "Treatment Type",
+                                     labels = c("Control", "Treatment"))) 
+
+ggsave("Figures/diss_figures/light_response_single.png", plot = light_plots, 
+       width = 7, height = 5.5, units = "in")
 
 
 
