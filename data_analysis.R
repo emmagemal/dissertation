@@ -40,12 +40,16 @@ dr_control <- dr_only %>%
 dr_treatment <- dr_only %>% 
                   filter(treatment_type == "treatment")
 
-# subsetting NP and DR (full) for models 
+# subsetting full NP and DR for models and calculations  
 np_full <- fulldata %>% 
               filter(type == "NP")
 dr_full <- fulldata %>% 
               filter(type == "DR")
 
+np_full_control <- np_full %>% 
+                      filter(treatment_type == "control")
+np_full_treatment <- np_full %>% 
+                        filter(treatment_type == "treatment")
 
 ### Calculating Optimum Temperature Ranges ----
 summary(np_control)  # max control NP = 1.3321
@@ -96,6 +100,224 @@ line.line.intersection(t1, t2, treatment_y, treatment_y2,
 line.line.intersection(t3, t4, treatment_y, treatment_y2, 
                        interior.only = FALSE)               # x = 15.9879˚C
 
+### Optimum Temperature Statistics ----
+## Control samples optimum temperature calculations 
+# maximum net photosynthesis for each sample 
+summary(np_full_control$np_DW[np_full_control$sample == "C1"])  # max C1 = 2.150
+summary(np_full_control$np_DW[np_full_control$sample == "C2"])  # max C2 = 0.452
+summary(np_full_control$np_DW[np_full_control$sample == "C3"])  # max C3 = 2.073
+summary(np_full_control$np_DW[np_full_control$sample == "C4"])  # max C4 = 3.095
+summary(np_full_control$np_DW[np_full_control$sample == "C5"])  # max C5 = 0.914
+summary(np_full_control$np_DW[np_full_control$sample == "C6"])  # max C6 = 1.530
+
+# calculating 90% of the maximum net photosynthesis 
+0.9*2.150  # C1 = 1.935
+0.9*0.452  # C2 = 0.407
+0.9*2.073  # C3 = 1.866
+0.9*3.095  # C4 = 2.786
+0.9*0.914  # C5 = 0.823
+0.9*1.530  # C6 = 1.377
+
+# visualizing the intersection points 
+hline_c <- data.frame(z = c(1.935, 0.407, 1.866, 2.786, 0.823, 1.377), 
+                      sample = factor(c("C1", "C2", "C3", "C4", "C5", "C6")))
+
+(np_control_plot <- ggplot(np_full_control, aes(x = temp, y = np_DW)) +
+                      geom_point(aes(color = sample), 
+                                 size = 2, alpha = 0.85) +
+                      geom_line(aes(color = sample)) +
+                      facet_wrap(~sample) +
+                      geom_hline(data = hline_c, aes(yintercept = z)))
+
+## Determining the control intersection points
+# C1 intersection points
+c1a <- c(10, 1.40250649)
+c1b <- c(15, 2.15039655)
+c1c <- c(20, 0.87415111)
+control_y_c1 <- c(5, 1.935)
+control_y2_c1 <- c(25, 1.935)
+
+line.line.intersection(c1a, c1b, control_y_c1, control_y2_c1, 
+                       interior.only = FALSE)               # x = 13.560˚C
+line.line.intersection(c1b, c1c, control_y_c1, control_y2_c1, 
+                       interior.only = FALSE)               # x = 15.844˚C
+
+# C2 intersection points
+c2a <- c(2, 0.45202245)
+c2b <- c(5, 0.30479208)
+control_y_c2 <- c(0, 0.407)
+control_y2_c2 <- c(10, 0.407)
+
+line.line.intersection(c2a, c2b, control_y_c2, control_y2_c2, 
+                       interior.only = FALSE)               # x = 2.917˚C
+
+# C3 intersection points
+c3a <- c(2, 2.07331979)
+c3b <- c(5, 1.37018400)
+control_y_c3 <- c(0, 1.866)
+control_y2_c3 <- c(10, 1.866)
+
+line.line.intersection(c3a, c3b, control_y_c3, control_y2_c3, 
+                       interior.only = FALSE)               # x = 2.885˚C
+
+# C4 intersection points
+c4a <- c(5, 1.85969117)
+c4b <- c(10, 3.09514203)
+c4c <- c(15, 1.76274162)
+control_y_c4 <- c(2, 2.786)
+control_y2_c4 <- c(20, 2.786)
+
+line.line.intersection(c4a, c4b, control_y_c4, control_y2_c4, 
+                       interior.only = FALSE)               # x = 8.749˚C
+line.line.intersection(c4b, c4c, control_y_c4, control_y2_c4, 
+                       interior.only = FALSE)               # x = 11.160˚C
+
+# C5 intersection points
+c5a <- c(5, 0.15343868)
+c5b <- c(10, 0.91347719)
+c5c <- c(15, -1.71686016)
+control_y_c5 <- c(2, 0.823)
+control_y2_c5 <- c(20, 0.823)
+
+line.line.intersection(c5a, c5b, control_y_c5, control_y2_c5, 
+                       interior.only = FALSE)               # x = 9.405˚C
+line.line.intersection(c5b, c5c, control_y_c5, control_y2_c5, 
+                       interior.only = FALSE)               # x = 10.172˚C
+
+# C6 intersection points
+c6a <- c(5, 1.03596630)
+c6b <- c(10, 1.52977948)
+c6c <- c(15, -1.46892583)
+control_y_c6 <- c(2, 1.377)
+control_y2_c6 <- c(20, 1.377)
+
+line.line.intersection(c6a, c6b, control_y_c6, control_y2_c6, 
+                       interior.only = FALSE)               # x = 8.453˚C
+line.line.intersection(c6b, c6c, control_y_c6, control_y2_c6, 
+                       interior.only = FALSE)               # x = 10.255˚C
+
+## Treatment samples optimum temperature calculations
+# maximum net photosynthesis for each sample 
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T1"])  # max T1 = 2.0939
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T2"])  # max T2 = 2.483
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T3"])  # max T3 = 4.573
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T4"])  # max T4 = 0.998
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T5"])  # max T5 = 4.432
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T6"])  # max T6 = 4.938
+
+# calculating 90% of the maximum net photosynthesis 
+0.9*2.0939  # T1 = 1.885
+0.9*2.483  # T2 = 2.235
+0.9*4.573  # T3 = 4.116
+0.9*0.998  # T4 = 0.898
+0.9*4.432  # T5 = 3.989
+0.9*4.938  # T6 = 4.444
+
+# visualizing the intersection points 
+hline_t <- data.frame(z = c(1.885, 2.235, 4.116, 0.898, 3.989, 4.444), 
+                      sample = factor(c("T1", "T2", "T3", "T4", "T5", "T6")))
+
+(np_treatment_plot <- ggplot(np_full_treatment, aes(x = temp, y = np_DW)) +
+                        geom_point(aes(color = sample), 
+                                   size = 2, alpha = 0.85) +
+                        geom_line(aes(color = sample)) +
+                        facet_wrap(~sample) +
+                        geom_hline(data = hline_t, aes(yintercept = z)))
+
+## Determining the treatment intersection points
+# T1 intersection points
+t1a <- c(2, 2.09390796)
+t1b <- c(5, 1.53332246)
+treatment_y_t1 <- c(0, 1.885)
+treatment_y2_t1 <- c(10, 1.885)
+
+line.line.intersection(t1a, t1b, treatment_y_t1, treatment_y2_t1, 
+                       interior.only = FALSE)               # x = 3.118˚C
+
+# T2 intersection points
+t2a <- c(10, 0.63100582)
+t2b <- c(15, 2.48289801)
+t2c <- c(20, 2.19181633)
+treatment_y_t2 <- c(5, 2.235)
+treatment_y2_t2 <- c(25, 2.235)
+
+line.line.intersection(t2a, t2b, treatment_y_t2, treatment_y2_t2, 
+                       interior.only = FALSE)               # x = 14.331˚C
+line.line.intersection(t2b, t2c, treatment_y_t2, treatment_y2_t2, 
+                       interior.only = FALSE)               # x = 19.258˚C
+
+# T3 intersection points
+t3a <- c(10, 2.96954361)
+t3b <- c(15, 4.57265541)
+t3c <- c(20, 1.38623779)
+treatment_y_t3 <- c(5, 4.116)
+treatment_y2_t3 <- c(25, 4.116)
+
+line.line.intersection(t3a, t3b, treatment_y_t3, treatment_y2_t3, 
+                       interior.only = FALSE)               # x = 13.576˚C
+line.line.intersection(t3b, t3c, treatment_y_t3, treatment_y2_t3, 
+                       interior.only = FALSE)               # x = 15.717˚C
+
+# T4 intersection points
+t4a <- c(5, 0.69462551)
+t4b <- c(10, 0.99809032)
+t4c <- c(15, 0.68706063)
+treatment_y_t4 <- c(2, 0.898)
+treatment_y2_t4 <- c(20, 0.898)
+
+line.line.intersection(t4a, t4b, treatment_y_t4, treatment_y2_t4, 
+                       interior.only = FALSE)               # x = 8.351˚C
+line.line.intersection(t4b, t4c, treatment_y_t4, treatment_y2_t4, 
+                       interior.only = FALSE)               # x = 11.609˚C
+
+# T5 intersection points
+t5a <- c(5, 0.27651295)
+t5b <- c(10, 4.43202224)
+t5c <- c(15, 1.99593504)
+treatment_y_t5 <- c(2, 3.989)
+treatment_y2_t5 <- c(20, 3.989)
+
+line.line.intersection(t5a, t5b, treatment_y_t5, treatment_y2_t5, 
+                       interior.only = FALSE)               # x = 9.467˚C
+line.line.intersection(t5b, t5c, treatment_y_t5, treatment_y2_t5, 
+                       interior.only = FALSE)               # x = 10.909˚C
+
+# T6 intersection points
+t6a <- c(5, 0.31124528)
+t6b <- c(10, 4.93776185)
+t6c <- c(15, 3.77278049)
+treatment_y_t6 <- c(2, 4.444)
+treatment_y2_t6 <- c(20, 4.444)
+
+line.line.intersection(t6a, t6b, treatment_y_t6, treatment_y2_t6, 
+                       interior.only = FALSE)               # x = 9.466˚C
+line.line.intersection(t6b, t6c, treatment_y_t6, treatment_y2_t6, 
+                       interior.only = FALSE)               # x = 12.119˚C
+
+
+## Creating a combined dataframe for analysis 
+opt_temp_max <- c(15.844, 2.917, 2.885, 11.160, 10.172, 10.255,
+                  3.118, 19.258, 15.717, 11.609, 10.909, 12.119)
+opt_temp_min <- c(13.560, 2.917, 2.885, 8.749, 9.405, 8.453, 
+                  3.118, 14.331, 13.576, 8.351, 9.467, 9.466)
+sample_max <- c("C1", "C2", "C3", "C4", "C5", "C6", "T1", "T2", "T3", "T4", "T5", "T6")
+sample_min <- c("C1", "C2", "C3", "C4", "C5", "C6", "T1", "T2", "T3", "T4", "T5", "T6")
+
+opt_stats <- data.frame(opt_temp_max, opt_temp_min, sample_max, sample_min)
+str(opt_stats)
+
+opt_stats <- opt_stats %>% 
+                mutate(treatment_type = case_when(grepl("C", sample_max) ~ "control",
+                                                  grepl("T", sample_max) ~ "treatment"))
+
+## Testing significance of optimum temperature ranges 
+t.test(opt_temp_max ~ treatment_type, data = opt_stats)
+t.test(opt_temp_min ~ treatment_type, data = opt_stats)
+
+opt_lm_max <- lm(opt_temp_max ~ treatment_type, data = opt_stats)
+opt_lm_min <- lm(opt_temp_min ~ treatment_type, data = opt_stats)
+Anova(opt_lm_max, type = "III")
+Anova(opt_lm_min, type = "III")
 
 ### Determining Negative NP Thresholds ----
 (neg_np_plot <- ggplot(np_only, aes(x = temp, y = avgDW)) +
