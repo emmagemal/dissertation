@@ -248,7 +248,7 @@ sum_active <- sum_active %>%
                             axis.title.y = 
                               element_text(margin = margin(t = 0, r = 10, b = 0, l = 0))) +
                       theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
-                      scale_color_manual(values = c("#004452", "#B5BA4F", "#12A7B8"),
+                      scale_color_manual(values = c("#004452", "#B5BA4F", "#FF6D33"),
                                          labels = c("Mean", "Maximum", "Minimum")) + 
                       scale_shape_discrete(labels = c("Mean", "Maximum", "Minimum")))
 
