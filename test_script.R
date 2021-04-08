@@ -94,9 +94,9 @@ ggsave("Figures/diss_figures/c_gain_stacked2.png", plot = stacked_both,
 
 
 ## Acclimation Ratios ----
-ratios <- read.csv("Data/acclim_ratios_new.csv")
+ratios <- read.csv("Data/acclimation_ratios.csv")
 
-(ratio_plot <- ggplot(ratios, aes(x = temp, y = DWt.c_any)) +
+(ratio_plot <- ggplot(ratios, aes(x = temp, y = DWt.c)) +
                   geom_point(aes(color = type, shape = type), size = 2.5, alpha = 0.9) +
                   geom_hline(yintercept = 1, linetype = "dotted") +
                   ylab(label = "Acclimation ratio") +
@@ -116,14 +116,6 @@ ratios <- read.csv("Data/acclim_ratios_new.csv")
 ggsave("Figures/diss_figures/acclim_ratio_plot.png", plot = ratio_plot, 
        width = 6, height = 5.5, units = "in")
 
-# DR = 10-30 degrees the dark respiration ratios are nearly identical/ very similar
-  # could imply Q10 is the same for those temperatures, so >5 degrees 
-# closer to 1 would imply acclimation to the same rates as the control at optimal temp
-  # >1 would imply increased rates compared to the control 
-  # closer to 0 would imply less acclimation 
-# DR 2 and 5 degrees > 1, so higher respiration rates
-# NP 25 > 1, so higher net photosynthesis rates (>2x) and thus increased productivity 
-
 
 ## Light Response Curves ----
 light <- read.csv("Data/full_light_responses.csv") 
@@ -139,6 +131,7 @@ light_sum <- light %>%
 
 # plotting the light response curves
 (light_plots <- ggplot(light_sum, aes(x = Lcuv, y = avgCO2)) +
+                  geom_hline(yintercept = 0, size = 0.5, linetype = "dotted") +               
                   geom_point(aes(color = treatment_type), size = 2.2) +
                   geom_line(aes(color = treatment_type)) +
                   geom_errorbar(aes(ymin = avgCO2-seCO2, ymax = avgCO2+seCO2, 
@@ -147,7 +140,6 @@ light_sum <- light %>%
                        "Average ", "\u0394", "CO"[2], " (rel. ppm)"))) +  # check units 
                   xlab(label = expression(paste(
                        "Photon flux density ", "(µE ", "m"^-2, " s"^-1, ")"))) +
-                  geom_hline(yintercept = 0) +               
                   theme_bw() +
                   theme(panel.grid.minor = element_blank(),
                         axis.title.x = 
@@ -157,7 +149,7 @@ light_sum <- light %>%
                                      name = "Treatment Type",
                                      labels = c("Control", "Treatment"))) 
 
-ggsave("Figures/diss_figures/light_response_single.png", plot = light_plots, 
+ggsave("Figures/diss_figures/light_response.png", plot = light_plots, 
        width = 7, height = 5.5, units = "in")
 
 
