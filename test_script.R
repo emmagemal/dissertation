@@ -139,7 +139,7 @@ light_sum <- light %>%
                   ylab(label = expression(paste(
                        "Average ", "\u0394", "CO"[2], " (rel. ppm)"))) +  # check units 
                   xlab(label = expression(paste(
-                       "Photon flux density ", "(µE ", "m"^-2, " s"^-1, ")"))) +
+                       "PPFD ", "(µmol ", "m"^-2, " s"^-1, ")"))) +
                   theme_bw() +
                   theme(panel.grid.minor = element_blank(),
                         axis.title.x = 
