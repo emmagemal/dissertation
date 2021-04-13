@@ -9,7 +9,7 @@ library(lmtest)
 library(lme4)
 library(car)
 
-### Data Manipulation ----
+### NP/DR Data Manipulation ----
 fulldata <- read.csv("Data/raw_np_dr_data.csv", header = TRUE)
 avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
 
@@ -314,10 +314,6 @@ opt_stats <- opt_stats %>%
 t.test(opt_temp_max ~ treatment_type, data = opt_stats)
 t.test(opt_temp_min ~ treatment_type, data = opt_stats)
 
-opt_lm_max <- lm(opt_temp_max ~ treatment_type, data = opt_stats)
-opt_lm_min <- lm(opt_temp_min ~ treatment_type, data = opt_stats)
-Anova(opt_lm_max, type = "III")
-Anova(opt_lm_min, type = "III")
 
 ### Determining Negative NP Thresholds ----
 (neg_np_plot <- ggplot(np_only, aes(x = temp, y = avgDW)) +
@@ -349,10 +345,11 @@ line.line.intersection(t1_neg, t2_neg, treatment_y_neg,
 
 ### Models for NP ----
 # checking for normality of the data 
-(hist <- ggplot(fulldata, aes(x = np_DW)) +
+(hist <- ggplot(np_full, aes(x = np_DW)) +
            geom_histogram(color = "black") +
            theme_classic() +
            scale_y_continuous(expand = c(0,0)))
+shapiro.test(np_full$np_DW)   # is normally distributed, p > 0.05
 
 ## Mixed effects models 
 mixed_null_np <- lmer(np_DW ~ 1 + (1|sample), data = np_full, REML = F)
@@ -628,3 +625,66 @@ light_sum_lcp$LCPcuv <- c(147.3, 71.2, 22.4, 27.9)
 t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significantly different)
 # using the means of the calculated LCPcuv, control = 109.25 and treatment = 25.15 
 # (different to pre-averaged data, a lot lower)
+### Optimal Water Content Ranges ----
+# potentially change the heading name
+
+
+
+### Models for Climate (Temperature) ----
+## Simple linear models 
+temp_m <- lm(temp ~ year, data = combo)
+summary(temp_m)  # p = 0.749, not at all significant
+anova(temp_m)
+
+# checking model assumptions 
+plot(temp_m)  # not very normally distributed 
+hist(resid(temp_m))  # skewed, violates model assumptions 
+bptest(temp_m)  # there is heteroskedasticity in the model, violates assumptions
+
+# creating a null model to compare it to
+temp_null <- lm(temp ~ 1, data = combo)
+AIC(temp_m, temp_null)  # null model is better 
+
+## Mixed effects models 
+# if std error > estimate = year doesn't explain much of the variation
+# can calculate % of leftover variation that's explained by the random effects 
+# estimate for year = after controlling for the random effects 
+
+temp_mixed <- lmer(temp ~ year + (1|year), data = combo, REML = F)
+temp_month_mixed <- lmer(temp ~ year + (1|month), data = combo, REML = F)
+temp_day_mixed <- lmer(temp ~ year + (1|day), data = combo, REML = F)
+temp_date_mixed <- lmer(temp ~ year + (1|date_time), data = combo, REML = F)
+temp_season_mixed <- lmer(temp ~ year + (1|season), data = combo, REML = F)
+
+AIC(temp_mixed, temp_month_mixed, temp_day_mixed, temp_date_mixed, temp_season_mixed)
+# month as random effect is best
+
+# models that failed to converge: (1|month) + (1|day), (year|month), (month|day)
+temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = combo, REML = F)
+temp_month_date <- lmer(temp ~ year + (1|month) + (1|date_time), data = combo, REML = F)
+
+anova(temp_month_mixed, temp_month_season)  # month_season is best
+anova(temp_month_mixed, temp_month_date)    # month_date is better
+AIC(temp_month_season, temp_month_date)     # month_season is best  
+
+# creating null models to compare it with
+temp_m_null <- lmer(temp ~ 1 + (1|month) + (1|season), data = combo, REML = F)
+
+# anova states which model is better at capturing the data
+anova(temp_m_null, temp_month_season) 
+# model with year as a fixed effect is better than the null models   
+
+anova(temp_month_season, temp_m)  # temp_month_season is best 
+
+summary(temp_month_season)   # year: -0.2165 (std error: 0.06413), small effect size 
+confint(temp_month_season)   # year: -0.3463 to -0.08523 
+# 95% confident the correlation between year and temperature is between those 2 values 
+
+# calculating pseudo-R2 for mixed effects model 
+r.squaredGLMM(temp_month_season)  # marginal R^2 associated with year (fixed effect) = 0.0238
+# conditional R^2 associated with fixed + random = 0.635
+# r2_nakagawa(temp_month_season)   # 'performance' - same output: R2(c) = 0.635, R2(m) = 0.024
+
+# comparing to the null model (only random effects)
+summary(temp_m_null)
+r.squaredGLMM(temp_m_null)
