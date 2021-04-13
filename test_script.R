@@ -2,10 +2,10 @@
 # Emma Gemal, s1758915@sms.ed.ac.uk
 # University of Edinburgh 
 
-## Library ----
+### Library ----
 library(tidyverse)
 
-## Temperature Response Curves ----
+### Temperature Response Curves ----
 avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
 str(avgdata)
 
@@ -65,7 +65,7 @@ ggsave("Figures/diss_figures/t_response_chl.png", plot = chl_plot,
       width = 6.5, height = 5.5, units = "in")
 
 
-## Carbon Gain Efficiency ----
+### Carbon Gain Efficiency ----
 cgain <- read.csv("Data/c_gain_long.csv") 
 
 str(cgain)
@@ -93,7 +93,7 @@ ggsave("Figures/diss_figures/c_gain_stacked2.png", plot = stacked_both,
        width = 8, height = 5.5, units = "in")
 
 
-## Acclimation Ratios ----
+### Acclimation Ratios ----
 ratios <- read.csv("Data/acclimation_ratios.csv")
 
 (ratio_plot <- ggplot(ratios, aes(x = temp, y = DWt.c)) +
@@ -117,7 +117,7 @@ ggsave("Figures/diss_figures/acclim_ratio_plot.png", plot = ratio_plot,
        width = 6, height = 5.5, units = "in")
 
 
-## Light Response Curves ----
+### Light Response Curves ----
 light <- read.csv("Data/full_light_responses.csv") 
 str(light)
 
@@ -152,6 +152,50 @@ light_sum <- light %>%
 ggsave("Figures/diss_figures/light_response.png", plot = light_plots, 
        width = 7, height = 5.5, units = "in")
 
+
+### Climate Data ----
+climate <- read.csv("Data/climate_combo.csv")
+
+# creating summary data 
+sum_year <- climate %>% 
+              group_by(year) %>% 
+              summarise(avg_temp = mean(temp),
+                        min_temp = min(temp),
+                        max_temp = max(temp))
+
+sum_year_long <- sum_year %>% 
+                    pivot_longer(cols = c(2:4),
+                                 names_to = "type",
+                                 values_to = "temp")
+
+# plotting the average, minimum and maximum temperature over time (by year) 
+minor <- seq(2004, 2016, by = 4)   # making minor gridlines for the plot 
+
+(temp_year <- ggplot(sum_year_long, aes(x = year, y = temp, 
+                                        color = type, shape = type)) +
+                geom_vline(xintercept = minor, color = "grey92") +                 
+                geom_point(size = 2.5) +  
+                geom_line(aes(group = type)) +
+                geom_hline(yintercept = 0, linetype = "dashed") +
+                ylab(label = "Temperature (˚C)") +
+                xlab(label = "Year") +
+                theme_bw() +
+                theme(axis.text.x = element_text(angle = 60, hjust = 1),
+                      panel.grid.minor = element_blank(),
+                      panel.grid.major.x = element_blank(),
+                      legend.title = element_blank(),
+                      axis.title.x = 
+                        element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                      axis.title.y = 
+                        element_text(margin = margin(t = 0, r = 10, b = 0, l = 0))) +
+                theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                scale_color_manual(values = c("#004452", "#B5BA4F", "#FF6D33"),
+                                   labels = c("Mean", "Maximum", "Minimum")) + 
+                scale_shape_discrete(labels = c("Mean", "Maximum", "Minimum")) +
+                scale_x_continuous(n.breaks = 8))
+
+ggsave("Figures/diss_figures/climate_plot_year.png", plot = temp_year, 
+       width = 6.5, height = 5.5, units = "in")
 
 
 
@@ -189,3 +233,142 @@ treatment_long_combo <- full_join(treatment_perc_long, treatment_ratio_long) %>%
 # combining treatments for plotting
 cgain_combo <- full_join(treatment_long_combo, control_long_combo)
 write.csv(cgain_combo, "Data/c_gain_long.csv", row.names = FALSE) 
+
+
+#### creating climate_combo.csv 
+# loading the data
+climate2011 <- read.csv("Data/climate_long_2011-2018.csv")
+climate2004 <- read.csv("Data/climate_long_2004-2010.csv")
+
+## Data manipulation for 2011-2018 
+head(climate2011)
+str(climate2011)
+summary(climate2011)
+
+climate2011 <- climate2011 %>% 
+  na.omit() %>%   # removing NA's
+  filter(rH > 0) %>%  # removing incorrect rH values 
+  rename(year = Year,
+         temp = Temp) %>%  # renaming columns (lowercase)
+  mutate(VPD = as.numeric(VPD)) # changing VPD to numeric 
+str(climate2011)
+
+# adding season column
+climate2011 <- climate2011 %>% 
+  mutate(season = case_when(year == "2011" & month == "11" ~ "2011/12",
+                            year == "2011" & month == "12" ~ "2011/12",
+                            year == "2012" & month == "1" ~ "2011/12",
+                            year == "2012" & month == "11" ~ "2012/13",
+                            year == "2012" & month == "12" ~ "2012/13",
+                            year == "2013" & month == "1" ~ "2012/13",
+                            year == "2013" & month == "11" ~ "2013/14",
+                            year == "2013" & month == "12" ~ "2013/14",
+                            year == "2014" & month == "1" ~ "2013/14",
+                            year == "2014" & month == "11" ~ "2014/15",
+                            year == "2014" & month == "12" ~ "2014/15",
+                            year == "2015" & month == "1" ~ "2014/15",
+                            year == "2015" & month == "11" ~ "2015/16",
+                            year == "2015" & month == "12" ~ "2015/16",
+                            year == "2016" & month == "1" ~ "2015/16",
+                            year == "2016" & month == "11" ~ "2016/17",
+                            year == "2016" & month == "12" ~ "2016/17",
+                            year == "2017" & month == "1" ~ "2016/17",
+                            year == "2017" & month == "11" ~ "2017/18",
+                            year == "2017" & month == "12" ~ "2017/18",
+                            year == "2018" & month == "1" ~ "2017/18")) %>% 
+  mutate(season = as.factor(season))
+
+# removing 2012/13 season
+climate2011 <- climate2011[!(climate2011$season == "2012/13"), ]
+
+# fixing the time column to allow for easy change to POSIX class
+climate2011 <- climate2011 %>% 
+  mutate(real_time = case_when(time == 0 ~ "00:00",
+                               time == 100 ~ "01:00",
+                               time == 200 ~ "02:00",
+                               time == 300 ~ "03:00",
+                               time == 400 ~ "04:00",
+                               time == 500 ~ "05:00",
+                               time == 600 ~ "06:00",
+                               time == 700 ~ "07:00",
+                               time == 800 ~ "08:00",
+                               time == 900 ~ "09:00",
+                               time == 1000 ~ "10:00",
+                               time == 1100 ~ "11:00",
+                               time == 1200 ~ "12:00",
+                               time == 1300 ~ "13:00",
+                               time == 1400 ~ "14:00",
+                               time == 1500 ~ "15:00",
+                               time == 1600 ~ "16:00",
+                               time == 1700 ~ "17:00",
+                               time == 1800 ~ "18:00",
+                               time == 1900 ~ "19:00",
+                               time == 2000 ~ "20:00",
+                               time == 2100 ~ "21:00",
+                               time == 2200 ~ "22:00",
+                               time == 2300 ~ "23:00"))
+
+# creating date and date + time columns for time series plotting
+climate2011 <- climate2011 %>% 
+  unite("date", c("year", "month", "day"), remove = FALSE, sep = "-") %>% 
+  unite("date_time", c("date", "real_time"), remove = FALSE, sep = " ") %>% 
+  mutate(date = as.Date(date)) %>% 
+  mutate(date_time = as.POSIXct(date_time, format = "%Y-%m-%d %H:%M"))
+str(climate2011)
+
+## Data manipulation for 2004-2010
+head(climate2004)
+str(climate2004)
+summary(climate2004)
+
+climate2004 <- climate2004 %>% 
+  na.omit() %>%  # removing NA's
+  mutate(date_time = as.POSIXct(date_time,   # changing to POSIX class
+                                format = "%d/%m/%Y %H:%M")) 
+str(climate2004)
+
+# adding season column
+climate2004$year <- format(climate2004$date_time, format = "%Y")
+climate2004$month <- format(climate2004$date_time, format = "%m")
+climate2004$day <- format(climate2004$date_time, format = "%d")
+
+climate2004 <- climate2004 %>% 
+  mutate(season = case_when(year == "2004" & month == "11" ~ "2004/5",
+                            year == "2004" & month == "12" ~ "2004/5",
+                            year == "2005" & month == "1" ~ "2005/6",
+                            year == "2005" & month == "11" ~ "2005/6",
+                            year == "2005" & month == "12" ~ "2005/6",
+                            year == "2006" & month == "1" ~ "2006/7",
+                            year == "2006" & month == "11" ~ "2006/7",
+                            year == "2006" & month == "12" ~ "2006/7",
+                            year == "2007" & month == "1" ~ "2007/8",
+                            year == "2007" & month == "11" ~ "2007/8",
+                            year == "2007" & month == "12" ~ "2007/8",
+                            year == "2008" & month == "1" ~ "2008/9",
+                            year == "2008" & month == "11" ~ "2008/9",
+                            year == "2008" & month == "12" ~ "2008/9",
+                            year == "2009" & month == "1" ~ "2009/10",
+                            year == "2009" & month == "11" ~ "2009/10",
+                            year == "2009" & month == "12" ~ "2009/10",
+                            year == "2010" & month == "1" ~ "2010/11",
+                            year == "2010" & month == "11" ~ "2010/11",
+                            year == "2010" & month == "12" ~ "2010/11")) %>% 
+  mutate(season = as.factor(season))
+
+## Combining data frames 
+str(climate2011)
+str(climate2004)
+
+# making year and month integers for 'climate2004' 
+climate2004 <- climate2004 %>% 
+  mutate(year = as.integer(year)) %>% 
+  mutate(month = as.integer(month)) %>% 
+  mutate(day = as.integer(day))
+
+combo <- full_join(climate2004, climate2011)
+
+# removing unnecessary columns
+combo <- combo %>% 
+  dplyr::select(date_time, temp, rH, year, month, day, season)
+
+write.csv(combo, "Data/climate_combo.csv", row.names = FALSE) 
