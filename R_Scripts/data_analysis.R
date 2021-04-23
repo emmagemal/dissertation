@@ -5,9 +5,11 @@
 ### Library ----
 library(tidyverse)
 library(retistruct)
-library(lmtest)
+library(lmerTest)
 library(lme4)
 library(car)
+library(sjPlot)
+library(MuMIn)
 
 ### NP/DR Data Manipulation ----
 fulldata <- read.csv("Data/raw_np_dr_data.csv", header = TRUE)
@@ -51,7 +53,7 @@ np_full_control <- np_full %>%
 np_full_treatment <- np_full %>% 
                         filter(treatment_type == "treatment")
 
-### Calculating Optimum Temperature Ranges ----
+### Calculating Average Optimum Temperature Ranges ----
 summary(np_control)  # max control NP = 1.3321
 summary(np_treatment)  # max treatment NP = 2.5546
 
@@ -100,7 +102,7 @@ line.line.intersection(t1, t2, treatment_y, treatment_y2,
 line.line.intersection(t3, t4, treatment_y, treatment_y2, 
                        interior.only = FALSE)               # x = 15.9879˚C
 
-### Optimum Temperature Statistics ----
+### Optimum Temperature Range Statistics ----
 ## Control samples optimum temperature calculations 
 # maximum net photosynthesis for each sample 
 summary(np_full_control$np_DW[np_full_control$sample == "C1"])  # max C1 = 2.150
@@ -315,58 +317,182 @@ t.test(opt_temp_max ~ treatment_type, data = opt_stats)
 t.test(opt_temp_min ~ treatment_type, data = opt_stats)
 
 
-### Determining Negative NP Thresholds ----
-(neg_np_plot <- ggplot(np_only, aes(x = temp, y = avgDW)) +
-                   geom_point(aes(color = treatment_type, shape = treatment_type), 
-                              size = 2.5, alpha = 0.85) +
-                   geom_line(aes(color = treatment_type)) +
-                   geom_hline(aes(yintercept = 0)) +  # plotting a line at 0 
-                   facet_wrap(~treatment_type))
+### Negative NP Statistics ----
+## Determining the control intersection points
+# visualizing the intersection points
+(negnp_control_plot <- ggplot(np_full_control, aes(x = temp, y = np_DW)) +
+                         geom_point(aes(color = sample), 
+                                    size = 2, alpha = 0.85) +
+                         geom_line(aes(color = sample)) +
+                         facet_wrap(~sample) +
+                         geom_hline(yintercept = 0))
 
-## Determining the intersection points
-# control intersection points
-c1_neg <- c(15, 0.4879867)
-c2_neg <- c(20, -0.6376730)
-control_y_neg <- c(10, 0)
-control_y2_neg <- c(25, 0)
+# C1 intersection points
+c1aneg <- c(25, 0.03516769)
+c1bneg <- c(30, -1.04820980)
+control_y_c1neg <- c(20, 0)
+control_y2_c1neg <- c(30, 0)
 
-line.line.intersection(c1_neg, c2_neg, control_y_neg, 
-                       control_y2_neg, interior.only = FALSE)      # x = 17.1676˚C 
+line.line.intersection(c1aneg, c1bneg, control_y_c1neg, control_y2_c1neg, 
+                       interior.only = FALSE)               # x = 25.162˚C
 
-# treatment intersection points 
-t1_neg <- c(25, 0.4504340)
-t2_neg <- c(30, -1.3601202)
-treatment_y_neg <- c(20, 0)
-treatment_y2_neg <- c(35, 0)
+# C2 intersection points
+c2aneg <- c(15, 0.29194808)
+c2bneg <- c(20, -1.19222116)
+control_y_c2neg <- c(10, 0)
+control_y2_c2neg <- c(25, 0)
 
-line.line.intersection(t1_neg, t2_neg, treatment_y_neg, 
-                       treatment_y2_neg, interior.only = FALSE)    # x = 26.2439˚C 
+line.line.intersection(c2aneg, c2bneg, control_y_c2neg, control_y2_c2neg, 
+                       interior.only = FALSE)               # x = 15.984˚C
 
+# C3 intersection points
+c3aneg <- c(15, 1.90861965)
+c3bneg <- c(20, -1.54370263)
+control_y_c3neg <- c(15, 0)
+control_y2_c3neg <- c(20, 0)
+
+line.line.intersection(c3aneg, c3bneg, control_y_c3neg, control_y2_c3neg, 
+                       interior.only = FALSE)               # x = 17.764˚C
+
+# C4 intersection points
+c4aneg <- c(20, 1.81622713)
+c4bneg <- c(25, -0.19804641)
+control_y_c4neg <- c(20, 0)
+control_y2_c4neg <- c(30, 0)
+
+line.line.intersection(c4aneg, c4bneg, control_y_c4neg, control_y2_c4neg, 
+                       interior.only = FALSE)               # x = 24.508˚C
+
+# C5 intersection points
+c5aneg <- c(10, 0.91347719)
+c5bneg <- c(15, -1.71686016)
+control_y_c5neg <- c(10, 0)
+control_y2_c5neg <- c(20, 0)
+
+line.line.intersection(c5aneg, c5bneg, control_y_c5neg, control_y2_c5neg, 
+                       interior.only = FALSE)               # x = 11.736˚C
+# C6 intersection points
+c6aneg <- c(10, 1.52977948)
+c6bneg <- c(15, -1.46892583)
+control_y_c6neg <- c(10, 0)
+control_y2_c6neg <- c(15, 0)
+
+line.line.intersection(c6aneg, c6bneg, control_y_c6neg, control_y2_c6neg, 
+                       interior.only = FALSE)               # x = 12.551˚C
+
+## Determining the treatment intersection points
+# visualizing the intersection points
+(negnp_treatment_plot <- ggplot(np_full_treatment, aes(x = temp, y = np_DW)) +
+                            geom_point(aes(color = sample), 
+                                       size = 2, alpha = 0.85) +
+                            geom_line(aes(color = sample)) +
+                            facet_wrap(~sample) +
+                            geom_hline(yintercept = 0))
+
+# T1 intersection points
+t1aneg <- c(15, 1.81651836)
+t1bneg <- c(20, -0.40554268)
+treatment_y_t1neg <- c(15, 0)
+treatment_y2_t1neg <- c(25, 0)
+
+line.line.intersection(t1aneg, t1bneg, treatment_y_t1neg, treatment_y2_t1neg, 
+                       interior.only = FALSE)               # x = 19.087˚C
+
+# T2 intersection points
+t2aneg <- c(20, 2.19181633)
+t2bneg <- c(25, -0.48649322)
+treatment_y_t2neg <- c(20, 0)
+treatment_y2_t2neg <- c(30, 0)
+
+line.line.intersection(t2aneg, t2bneg, treatment_y_t2neg, treatment_y2_t2neg, 
+                       interior.only = FALSE)               # x = 24.092˚C
+
+# T3 intersection points
+t3aneg <- c(25, 1.02732157)
+t3bneg <- c(30, -0.53525911)
+treatment_y_t3neg <- c(20, 0)
+treatment_y2_t3neg <- c(30, 0)
+
+line.line.intersection(t3aneg, t3bneg, treatment_y_t3neg, treatment_y2_t3neg, 
+                       interior.only = FALSE)               # x = 28.287˚C
+
+## Creating a combined dataframe for analysis 
+negNP <- c(25.162, 15.984, 17.764, 24.508, 11.736, 12.551, 19.087, 24.092, 28.287)
+
+sample <- c("C1", "C2", "C3", "C4", "C5", "C6", "T1", "T2", "T3")
+
+negNP_stats <- data.frame(negNP, sample)
+str(negNP_stats)
+
+negNP_stats <- negNP_stats %>% 
+                  mutate(treatment_type = case_when(grepl("C", sample) ~ "control",
+                                                    grepl("T", sample) ~ "treatment"))
+
+## Testing significance of optimum temperature ranges 
+t.test(negNP ~ treatment_type, data = negNP_stats)
+
+### Maximum NP Statistics ----
+# maximum net photosynthesis for each control sample 
+summary(np_full_control$np_DW[np_full_control$sample == "C1"])  # max C1 = 2.150
+summary(np_full_control$np_DW[np_full_control$sample == "C2"])  # max C2 = 0.452
+summary(np_full_control$np_DW[np_full_control$sample == "C3"])  # max C3 = 2.073
+summary(np_full_control$np_DW[np_full_control$sample == "C4"])  # max C4 = 3.095
+summary(np_full_control$np_DW[np_full_control$sample == "C5"])  # max C5 = 0.914
+summary(np_full_control$np_DW[np_full_control$sample == "C6"])  # max C6 = 1.530
+
+# maximum net photosynthesis for each treatment sample 
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T1"])  # max T1 = 2.0939
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T2"])  # max T2 = 2.483
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T3"])  # max T3 = 4.573
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T4"])  # max T4 = 0.998
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T5"])  # max T5 = 4.432
+summary(np_full_treatment$np_DW[np_full_treatment$sample == "T6"])  # max T6 = 4.938
+
+maxNP <- c(2.150, 0.452, 2.073, 3.095, 0.914, 1.530, 2.0939, 2.483, 4.573, 0.998, 4.432, 4.938)
+sample <- c("C1", "C2", "C3", "C4", "C5", "C6", "T1", "T2", "T3", "T4", "T5", "T6")
+
+maxNP_stats <- data.frame(maxNP, sample)
+str(maxNP_stats)
+
+maxNP_stats <- maxNP_stats %>% 
+                  mutate(treatment_type = case_when(grepl("C", sample) ~ "control",
+                                                    grepl("T", sample) ~ "treatment"))
+
+## Testing significance of maximum NP rates 
+t.test(maxNP ~ treatment_type, data = maxNP_stats)
 
 ### Models for NP ----
-# checking for normality of the data 
+## Checking data assumptions  
+# normally distributed response variable 
 (hist <- ggplot(np_full, aes(x = np_DW)) +
            geom_histogram(color = "black") +
            theme_classic() +
            scale_y_continuous(expand = c(0,0)))
 shapiro.test(np_full$np_DW)   # is normally distributed, p > 0.05
 
-## Mixed effects models 
+# homogeneity of regression slopes 
+anova(lm(np_DW ~ temp*treatment_type, data = np_full))  # interaction not significant
+
+## Models
+lm_treat_temp <- lm(np_DW ~ temp + treatment_type, data = np_full)
 mixed_null_np <- lmer(np_DW ~ 1 + (1|sample), data = np_full, REML = F)
-mixed_sample_np <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = np_full, REML = T)
-mixed_int_sample_np <- lmer(np_DW ~ temp*treatment_type + (1|sample), data = np_full, REML = T)
+mixed_notemp <- lmer(np_DW ~ treatment_type + (1|sample), data = np_full, REML = F)
+mixed_sample_np <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = np_full, REML = F)
 # sample as a random effect because sample needs to be controlled for, but I am not
 # interested in the direct relationship of it with np_DW 
 
 # comparing the models 
-#### to compare models you need REML = F, but to do an F-test rather than chi squared test
-  # you need to REML = T 
-AIC(mixed_null_np, mixed_sample_np, mixed_int_sample_np)  # lowest AIC = mixed_sample_np
-  # also has fewer degrees of freedom than mixed_int_sample_np
+AIC(mixed_null_np, mixed_notemp, mixed_sample_np)  # mixed: lowest AIC = mixed_sample_np
 
 anova(mixed_null_np, mixed_sample_np)  # mixed_sample_np is better than the null model
-anova(mixed_null_np, mixed_int_sample_np)  # mixed_int_sample_np is better than null model
-anova(mixed_sample_np, mixed_int_sample_np)  # interaction is NOT significantly better
+anova(mixed_sample_np, lm_treat_temp)  # accounting for sample variation is best (mixed_sample_np)
+
+# checking model assumptions 
+plot(mixed_sample_np)
+
+par(mfrow = c(1,2))
+qqnorm(ranef(mixed_sample_np)$sample[, 1], main = "Random effects of sample")
+qqnorm(resid(mixed_sample_np), main = "Residuals")
 
 # model outputs
 confint(mixed_sample_np)  # temp: -0.146 to -0.0817
@@ -378,25 +504,40 @@ summary(mixed_sample_np)  # sample explains quite a bit of the residual variance
 # treatment_type and temp significantly effect NP
 # they're significantly different from 0 according to the CI's
 0.9157/(0.9157+1.4169)    # sample explains 39.3% of the residual variation 
-                          ##### (or however you explain it)
 
-Anova(mixed_sample_np, type = "III", test = "F")  # temp: F = 49.05, p = 2.66e-9
-                                                  # treatment_type: F = 5.50, p = 0.041
-# temp and treatment_type significantly effect NP after accounting for between sample variation
-
+anova(mixed_sample_np)   # temp: F = 49.05, p = 2.71e-9
+                         # treatment_type: F = 5.51, p = 0.041
 
 ### Models for DR ----
-## Mixed effect models 
+## Checking data assumptions  
+# normally distributed response variable 
+(hist <- ggplot(dr_full, aes(x = np_DW)) +
+           geom_histogram(color = "black") +
+           theme_classic() +
+           scale_y_continuous(expand = c(0,0)))
+shapiro.test(dr_full$np_DW)   # is NOT normally distributed, p << 0.05
+
+# homogeneity of regression slopes 
+anova(lm(np_DW ~ temp*treatment_type, data = dr_full))  # interaction not significant
+
+## Models
+lm_treat_temp_dr <- lm(np_DW ~ temp + treatment_type, data = dr_full)
 mixed_null_dr <- lmer(np_DW ~ 1 + (1|sample), data = dr_full, REML = F)
-mixed_sample_dr <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = dr_full, REML = T)
-mixed_int_sample_dr <- lmer(np_DW ~ temp*treatment_type + (1|sample), 
-                            data = dr_full, REML = F)
+mixed_notemp_dr <- lmer(np_DW ~ treatment_type + (1|sample), data = dr_full, REML = F)
+mixed_sample_dr <- lmer(np_DW ~ temp + treatment_type + (1|sample), data = dr_full, REML = F)
 
 # comparing the models 
-AIC(mixed_null_dr, mixed_sample_dr, mixed_int_sample_dr)  # mixed_int_sample_dr = lowest AIC
+AIC(mixed_null_dr, mixed_notemp_dr, mixed_sample_dr)  # mixed_sample_dr = lowest AIC
 
-anova(mixed_sample_dr, mixed_int_sample_dr)  # interaction is NOT significantly better
-  # extra coefficients make it not worth it 
+anova(mixed_sample_dr, mixed_null_dr)  # mixed_sample_dr is better than the null model 
+anova(mixed_sample_dr, lm_treat_temp_dr)  # better to include the random effect 
+
+# checking model assumptions 
+plot(mixed_sample_dr)   # potential violation of linearity 
+
+par(mfrow = c(1,2))
+qqnorm(ranef(mixed_sample_dr)$sample[, 1], main = "Random effects of sample")
+qqnorm(resid(mixed_sample_dr), main = "Residuals")
 
 # model outputs 
 confint(mixed_sample_dr)  # temp: -0.243 to -0.192 
@@ -410,8 +551,8 @@ summary(mixed_sample_dr)  # sample explains a lot of the residual variance
 # temp is significant, treatment_type is not 
 1.5371/(1.5371+0.9043)  # sample explains 63.0% of the residual variation
 
-Anova(mixed_sample_dr, type = "III", test = "F")  # temp: F = 280.39, p = <2e-16 
-                                                  # treatment_type: F = 0.0020, p = 0.965
+anova(mixed_sample_dr)   # temp: F = 280.40, p = <2e-16
+                         # treatment_type: F = 0.0020, p = 0.965 
 # treatment_type is not significant, temp is significant 
 
 ### Average Light Response Curve Calculations ----
@@ -631,9 +772,11 @@ t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significa
 
 
 ### Models for Climate (Temperature) ----
+climate <- read.csv("Data/climate_combo.csv")
+
 ## Simple linear models 
-temp_m <- lm(temp ~ year, data = combo)
-summary(temp_m)  # p = 0.749, not at all significant
+temp_lm <- lm(temp ~ I(year-2004), data = climate)
+summary(temp_lm)  # p = 0.749, not at all significant
 anova(temp_m)
 
 # checking model assumptions 
@@ -642,33 +785,28 @@ hist(resid(temp_m))  # skewed, violates model assumptions
 bptest(temp_m)  # there is heteroskedasticity in the model, violates assumptions
 
 # creating a null model to compare it to
-temp_null <- lm(temp ~ 1, data = combo)
+temp_null <- lm(temp ~ 1, data = climate)
 AIC(temp_m, temp_null)  # null model is better 
 
-## Mixed effects models 
-# if std error > estimate = year doesn't explain much of the variation
-# can calculate % of leftover variation that's explained by the random effects 
-# estimate for year = after controlling for the random effects 
+## Mixed effect models
+temp_yr_m <- lmer(temp ~ year + (1|year), data = climate, REML = F)
+temp_day_m <- lmer(temp ~ year + (1|day), data = climate, REML = F)
+temp_date_m <- lmer(temp ~ year + (1|date_time), data = climate, REML = F)
+temp_season_m <- lmer(temp ~ year + (1|season), data = climate, REML = F)
+temp_month_yr_m
 
-temp_mixed <- lmer(temp ~ year + (1|year), data = combo, REML = F)
-temp_month_mixed <- lmer(temp ~ year + (1|month), data = combo, REML = F)
-temp_day_mixed <- lmer(temp ~ year + (1|day), data = combo, REML = F)
-temp_date_mixed <- lmer(temp ~ year + (1|date_time), data = combo, REML = F)
-temp_season_mixed <- lmer(temp ~ year + (1|season), data = combo, REML = F)
+AIC(temp_yr_m, temp_day_m, temp_date_m, temp_season_m)
+# day as random effect is best, season is 2nd best 
 
-AIC(temp_mixed, temp_month_mixed, temp_day_mixed, temp_date_mixed, temp_season_mixed)
-# month as random effect is best
-
-# models that failed to converge: (1|month) + (1|day), (year|month), (month|day)
-temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = combo, REML = F)
-temp_month_date <- lmer(temp ~ year + (1|month) + (1|date_time), data = combo, REML = F)
+temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, REML = F)
+temp_month_date <- lmer(temp ~ year + (1|month) + (1|date_time), data = climate, REML = F)
 
 anova(temp_month_mixed, temp_month_season)  # month_season is best
 anova(temp_month_mixed, temp_month_date)    # month_date is better
 AIC(temp_month_season, temp_month_date)     # month_season is best  
 
 # creating null models to compare it with
-temp_m_null <- lmer(temp ~ 1 + (1|month) + (1|season), data = combo, REML = F)
+temp_m_null <- lmer(temp ~ 1 + (1|month) + (1|season), data = climate, REML = F)
 
 # anova states which model is better at capturing the data
 anova(temp_m_null, temp_month_season) 
@@ -676,9 +814,74 @@ anova(temp_m_null, temp_month_season)
 
 anova(temp_month_season, temp_m)  # temp_month_season is best 
 
+# results 
 summary(temp_month_season)   # year: -0.2165 (std error: 0.06413), small effect size 
 confint(temp_month_season)   # year: -0.3463 to -0.08523 
 # 95% confident the correlation between year and temperature is between those 2 values 
+
+# visualizing the effects 
+plot(temp_month_season)
+(re_effects <- plot_model(temp_month_season, type = "re", show.values = TRUE)) 
+# deviation for each random effect group from the model intercept estimates 
+# lots of deviation between months (no overlap of CI's) and seasons (some overlap across seasons)
+(fe_effects <- plot_model(temp_month_season, show.values = TRUE))
+# -0.22, somewhat wide confidence interval (some uncertainty)
+
+# calculating pseudo-R2 for mixed effects model 
+r.squaredGLMM(temp_month_season)  # marginal R^2 associated with year (fixed effect) = 0.0238
+# conditional R^2 associated with fixed + random = 0.635
+# r2_nakagawa(temp_month_season)   # 'performance' - same output: R2(c) = 0.635, R2(m) = 0.024
+
+# comparing to the null model (only random effects)
+summary(temp_m_null)
+r.squaredGLMM(temp_m_null)
+
+
+## OLD Mixed effects models 
+# if std error > estimate = year doesn't explain much of the variation
+# can calculate % of leftover variation that's explained by the random effects 
+# estimate for year = after controlling for the random effects 
+
+# month = only 3 of them, not great as a random effect 
+
+temp_mixed <- lmer(temp ~ year + (1|year), data = climate, REML = F)
+temp_month_mixed <- lmer(temp ~ year + (1|month), data = climate, REML = F)
+temp_day_mixed <- lmer(temp ~ year + (1|day), data = climate, REML = F)
+temp_date_mixed <- lmer(temp ~ year + (1|date_time), data = climate, REML = F)
+temp_season_mixed <- lmer(temp ~ year + (1|season), data = climate, REML = F)
+
+AIC(temp_mixed, temp_month_mixed, temp_day_mixed, temp_date_mixed, temp_season_mixed)
+# month as random effect is best
+
+# models that failed to converge: (1|month) + (1|day), (year|month), (month|day)
+temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, REML = F)
+temp_month_date <- lmer(temp ~ year + (1|month) + (1|date_time), data = climate, REML = F)
+
+anova(temp_month_mixed, temp_month_season)  # month_season is best
+anova(temp_month_mixed, temp_month_date)    # month_date is better
+AIC(temp_month_season, temp_month_date)     # month_season is best  
+
+# creating null models to compare it with
+temp_m_null <- lmer(temp ~ 1 + (1|month) + (1|season), data = climate, REML = F)
+
+# anova states which model is better at capturing the data
+anova(temp_m_null, temp_month_season) 
+# model with year as a fixed effect is better than the null models   
+
+anova(temp_month_season, temp_m)  # temp_month_season is best 
+
+# results 
+summary(temp_month_season)   # year: -0.2165 (std error: 0.06413), small effect size 
+confint(temp_month_season)   # year: -0.3463 to -0.08523 
+# 95% confident the correlation between year and temperature is between those 2 values 
+
+# visualizing the effects 
+plot(temp_month_season)
+(re_effects <- plot_model(temp_month_season, type = "re", show.values = TRUE)) 
+# deviation for each random effect group from the model intercept estimates 
+# lots of deviation between months (no overlap of CI's) and seasons (some overlap across seasons)
+(fe_effects <- plot_model(temp_month_season, show.values = TRUE))
+# -0.22, somewhat wide confidence interval (some uncertainty)
 
 # calculating pseudo-R2 for mixed effects model 
 r.squaredGLMM(temp_month_season)  # marginal R^2 associated with year (fixed effect) = 0.0238
