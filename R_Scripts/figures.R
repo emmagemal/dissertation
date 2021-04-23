@@ -19,7 +19,7 @@ str(avgdata)
               geom_hline(yintercept = 0, color = "grey", size = 0.8) +  # optional to keep              
               geom_point(aes(shape = type), size = 2.2) +
               geom_line(aes(linetype = type)) +
-              ylab(label = expression(Average~NP~per~dry~weight~(nmol~g^-1~s^-1))) +
+              ylab(label = expression(Assimilation~per~dry~weight~(nmol~g^-1~s^-1))) +
               xlab(label = "Temperature (˚C)") +              
               geom_errorbar(aes(ymin = avgDW-se_DW, ymax = avgDW+se_DW), width = 0.5) +
               theme_bw() +
@@ -35,7 +35,7 @@ str(avgdata)
               scale_linetype_discrete(name = c("Process", "Treatment Type")) +
               scale_shape_discrete(name = c("Process", "Treatment Type")))  
 
-ggsave("Figures/diss_figures/t_response_DW.png", plot = dw_plot, 
+ggsave("Figures/t_response_DW.png", plot = dw_plot, 
        width = 6.5, height = 5.5, units = "in")
 
 # plotting curves using chlorophyll content 
@@ -45,7 +45,7 @@ ggsave("Figures/diss_figures/t_response_DW.png", plot = dw_plot,
                 geom_line(aes(linetype = type)) +
                 geom_errorbar(aes(ymin = avgChl-se_Chl, ymax = avgChl+se_Chl), width = 0.5) +
                 ylab(label = 
-                       expression(Average~NP~per~chlorophyll~content~(nmol~mg^-1~s^-1))) +
+                       expression(Assimilation~per~chlorophyll~content~(nmol~mg^-1~s^-1))) +
                 xlab(label = "Temperature (˚C)") +              
                 theme_bw() +
                 theme(axis.title.x = 
@@ -61,7 +61,7 @@ ggsave("Figures/diss_figures/t_response_DW.png", plot = dw_plot,
                 scale_shape_discrete(name = c("Process", "Treatment Type")) +
                 scale_y_continuous(breaks = seq(-20, 10, 5)))
 
-ggsave("Figures/diss_figures/t_response_chl.png", plot = chl_plot, 
+ggsave("Figures/t_response_chl.png", plot = chl_plot, 
       width = 6.5, height = 5.5, units = "in")
 
 
@@ -73,7 +73,7 @@ str(cgain)
 # making stacked plots of DR:NP 
 (stacked_both <- ggplot(cgain, aes(x = temp, y = percent, fill = type)) +
                     geom_bar(position = "fill", stat = "identity") +
-                    ylab(label = "Percentage of gross photosynthesis (%)") +
+                    ylab(label = "Carbon Use Efficiency (%)") +
                     xlab(label = "Temperature (˚C)") +              
                     facet_wrap(~treatment_type, nrow = 1) +
                     theme_bw() +
@@ -89,7 +89,7 @@ str(cgain)
                                        labels = scales::percent_format(suffix = "")))  # OR
                #    scale_y_continuous(expand = c(0,0)))
 
-ggsave("Figures/diss_figures/c_gain_stacked2.png", plot = stacked_both, 
+ggsave("Figures/c_gain_stacked.png", plot = stacked_both, 
        width = 8, height = 5.5, units = "in")
 
 
@@ -137,7 +137,7 @@ light_sum <- light %>%
                   geom_errorbar(aes(ymin = avgCO2-seCO2, ymax = avgCO2+seCO2, 
                                     color = treatment_type, width = 20), alpha = 0.8) + 
                   ylab(label = expression(paste(
-                       "Average ", "\u0394", "CO"[2], " (rel. ppm)"))) +  # check units 
+                       "\u0394", "CO"[2], " (rel. ppm)"))) +  # check units 
                   xlab(label = expression(paste(
                        "PPFD ", "(µmol ", "m"^-2, " s"^-1, ")"))) +
                   theme_bw() +
@@ -149,8 +149,12 @@ light_sum <- light %>%
                                      name = "Treatment Type",
                                      labels = c("Control", "Treatment"))) 
 
-ggsave("Figures/diss_figures/light_response.png", plot = light_plots, 
+ggsave("Figures/light_response.png", plot = light_plots, 
        width = 7, height = 5.5, units = "in")
+
+
+
+
 
 
 ### Climate Data ----
@@ -197,8 +201,22 @@ minor <- seq(2004, 2016, by = 4)   # making minor gridlines for the plot
 ggsave("Figures/diss_figures/climate_plot_year.png", plot = temp_year, 
        width = 6.5, height = 5.5, units = "in")
 
+# adding the mixed effects model to the plot 
+library(ggeffects)
 
+temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, REML = F)
 
+# creating model predictions 
+pred.mm <- ggpredict(temp_month_season, terms = c("year"))  
+
+# plotting the predictions 
+(ggplot(pred.mm) + 
+    geom_line(aes(x = x, y = predicted)) +          # slope
+    geom_ribbon(aes(x = x, ymin = predicted - std.error, ymax = predicted + std.error), 
+                fill = "lightgrey", alpha = 0.5) +  # error band
+    geom_point(size = 2.5, data = sum_year_long, aes(x = year, y = temp, 
+                                              color = type, shape = type)))
+    
 
 ### Old Code for Data Creation ----
 #### creating c_gain_long.csv
