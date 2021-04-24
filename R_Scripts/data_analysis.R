@@ -5,8 +5,9 @@
 ### Library ----
 library(tidyverse)
 library(retistruct)
-library(lmerTest)
 library(lme4)
+library(lmerTest)
+library(lmtest)
 library(car)
 library(sjPlot)
 library(MuMIn)
@@ -777,98 +778,40 @@ climate <- read.csv("Data/climate_combo.csv")
 ## Simple linear models 
 temp_lm <- lm(temp ~ I(year-2004), data = climate)
 summary(temp_lm)  # p = 0.749, not at all significant
-anova(temp_m)
+
+temp_month_lm <- lm(temp ~ I(year-2004) + month, data = climate)
+summary(temp_month_lm)
 
 # checking model assumptions 
-plot(temp_m)  # not very normally distributed 
-hist(resid(temp_m))  # skewed, violates model assumptions 
-bptest(temp_m)  # there is heteroskedasticity in the model, violates assumptions
+plot(temp_lm)  # not very normally distributed 
+hist(resid(temp_lm))  # skewed, violates model assumptions 
+bptest(temp_lm)  # there is heteroskedasticity in the model, violates assumptions
 
-# creating a null model to compare it to
-temp_null <- lm(temp ~ 1, data = climate)
-AIC(temp_m, temp_null)  # null model is better 
+plot(temp_month_lm)
+bptest(temp_month_lm)
 
 ## Mixed effect models
 temp_yr_m <- lmer(temp ~ year + (1|year), data = climate, REML = F)
+temp_month_m <- lmer(temp ~ year + (1|month), data = climate, REML = F)
 temp_day_m <- lmer(temp ~ year + (1|day), data = climate, REML = F)
 temp_date_m <- lmer(temp ~ year + (1|date_time), data = climate, REML = F)
 temp_season_m <- lmer(temp ~ year + (1|season), data = climate, REML = F)
-temp_month_yr_m
 
-AIC(temp_yr_m, temp_day_m, temp_date_m, temp_season_m)
-# day as random effect is best, season is 2nd best 
+AIC(temp_yr_m, temp_month_m, temp_day_m, temp_date_m, temp_season_m)
+# temp_month_m is best, then temp_day_m, then temp_season_m  
 
+# testing additional random effects 
 temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, REML = F)
-temp_month_date <- lmer(temp ~ year + (1|month) + (1|date_time), data = climate, REML = F)
+temp_month_day <- lmer(temp ~ year + (1|month) + (1|day), data = climate, REML = F)
 
-anova(temp_month_mixed, temp_month_season)  # month_season is best
-anova(temp_month_mixed, temp_month_date)    # month_date is better
-AIC(temp_month_season, temp_month_date)     # month_season is best  
+AIC(temp_month_day, temp_month_season, temp_month_m) 
+# temp_month_season is the best 
 
 # creating null models to compare it with
 temp_m_null <- lmer(temp ~ 1 + (1|month) + (1|season), data = climate, REML = F)
 
-# anova states which model is better at capturing the data
 anova(temp_m_null, temp_month_season) 
 # model with year as a fixed effect is better than the null models   
-
-anova(temp_month_season, temp_m)  # temp_month_season is best 
-
-# results 
-summary(temp_month_season)   # year: -0.2165 (std error: 0.06413), small effect size 
-confint(temp_month_season)   # year: -0.3463 to -0.08523 
-# 95% confident the correlation between year and temperature is between those 2 values 
-
-# visualizing the effects 
-plot(temp_month_season)
-(re_effects <- plot_model(temp_month_season, type = "re", show.values = TRUE)) 
-# deviation for each random effect group from the model intercept estimates 
-# lots of deviation between months (no overlap of CI's) and seasons (some overlap across seasons)
-(fe_effects <- plot_model(temp_month_season, show.values = TRUE))
-# -0.22, somewhat wide confidence interval (some uncertainty)
-
-# calculating pseudo-R2 for mixed effects model 
-r.squaredGLMM(temp_month_season)  # marginal R^2 associated with year (fixed effect) = 0.0238
-# conditional R^2 associated with fixed + random = 0.635
-# r2_nakagawa(temp_month_season)   # 'performance' - same output: R2(c) = 0.635, R2(m) = 0.024
-
-# comparing to the null model (only random effects)
-summary(temp_m_null)
-r.squaredGLMM(temp_m_null)
-
-
-## OLD Mixed effects models 
-# if std error > estimate = year doesn't explain much of the variation
-# can calculate % of leftover variation that's explained by the random effects 
-# estimate for year = after controlling for the random effects 
-
-# month = only 3 of them, not great as a random effect 
-
-temp_mixed <- lmer(temp ~ year + (1|year), data = climate, REML = F)
-temp_month_mixed <- lmer(temp ~ year + (1|month), data = climate, REML = F)
-temp_day_mixed <- lmer(temp ~ year + (1|day), data = climate, REML = F)
-temp_date_mixed <- lmer(temp ~ year + (1|date_time), data = climate, REML = F)
-temp_season_mixed <- lmer(temp ~ year + (1|season), data = climate, REML = F)
-
-AIC(temp_mixed, temp_month_mixed, temp_day_mixed, temp_date_mixed, temp_season_mixed)
-# month as random effect is best
-
-# models that failed to converge: (1|month) + (1|day), (year|month), (month|day)
-temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, REML = F)
-temp_month_date <- lmer(temp ~ year + (1|month) + (1|date_time), data = climate, REML = F)
-
-anova(temp_month_mixed, temp_month_season)  # month_season is best
-anova(temp_month_mixed, temp_month_date)    # month_date is better
-AIC(temp_month_season, temp_month_date)     # month_season is best  
-
-# creating null models to compare it with
-temp_m_null <- lmer(temp ~ 1 + (1|month) + (1|season), data = climate, REML = F)
-
-# anova states which model is better at capturing the data
-anova(temp_m_null, temp_month_season) 
-# model with year as a fixed effect is better than the null models   
-
-anova(temp_month_season, temp_m)  # temp_month_season is best 
 
 # results 
 summary(temp_month_season)   # year: -0.2165 (std error: 0.06413), small effect size 
