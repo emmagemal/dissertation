@@ -17,7 +17,7 @@ str(avgdata)
 # plotting temperature response curves using dry weight  
 (dw_plot <- ggplot(avgdata, aes(x = temp, y = avgDW, color = treatment_type)) +
               geom_hline(yintercept = 0, color = "grey", size = 0.8) +  # optional to keep              
-              geom_point(aes(shape = type), size = 2.2) +
+              geom_point(aes(shape = type), size = 2) +
               geom_line(aes(linetype = type)) +
               ylab(label = expression(Assimilation~per~dry~weight~(nmol~g^-1~s^-1))) +
               xlab(label = "Temperature (˚C)") +              
@@ -36,12 +36,12 @@ str(avgdata)
               scale_shape_discrete(name = c("Process", "Treatment Type")))  
 
 ggsave("Figures/t_response_DW.png", plot = dw_plot, 
-       width = 6.5, height = 5.5, units = "in")
+       width = 6.8, height = 5.2, units = "in")
 
 # plotting curves using chlorophyll content 
 (chl_plot <- ggplot(avgdata, aes(x = temp, y = avgChl, color = treatment_type)) +
                 geom_hline(yintercept = 0, color = "grey", size = 0.8) +  # optional to keep              
-                geom_point(aes(shape = type), size = 2.2) +
+                geom_point(aes(shape = type), size = 2) +
                 geom_line(aes(linetype = type)) +
                 geom_errorbar(aes(ymin = avgChl-se_Chl, ymax = avgChl+se_Chl), width = 0.5) +
                 ylab(label = 
@@ -62,7 +62,7 @@ ggsave("Figures/t_response_DW.png", plot = dw_plot,
                 scale_y_continuous(breaks = seq(-20, 10, 5)))
 
 ggsave("Figures/t_response_chl.png", plot = chl_plot, 
-      width = 6.5, height = 5.5, units = "in")
+      width = 6.8, height = 5.2, units = "in")
 
 
 ### Carbon Gain Efficiency ----
@@ -90,7 +90,7 @@ str(cgain)
                #    scale_y_continuous(expand = c(0,0)))
 
 ggsave("Figures/c_gain_stacked.png", plot = stacked_both, 
-       width = 8, height = 5.5, units = "in")
+       width = 7.5, height = 5, units = "in")
 
 
 ### Acclimation Ratios ----
@@ -113,8 +113,8 @@ ratios <- read.csv("Data/acclimation_ratios.csv")
                   scale_shape_discrete(name = "Process") + # can change the name
                   scale_y_continuous(limits = c(0, 6)))
 
-ggsave("Figures/diss_figures/acclim_ratio_plot.png", plot = ratio_plot, 
-       width = 6, height = 5.5, units = "in")
+ggsave("Figures/acclim_ratio_plot.png", plot = ratio_plot, 
+       width = 6.5, height = 5, units = "in")
 
 
 ### Light Response Curves ----
@@ -151,10 +151,6 @@ light_sum <- light %>%
 
 ggsave("Figures/light_response.png", plot = light_plots, 
        width = 7, height = 5.5, units = "in")
-
-
-
-
 
 
 ### Climate Data ----
@@ -198,7 +194,7 @@ minor <- seq(2004, 2016, by = 4)   # making minor gridlines for the plot
                 scale_shape_discrete(labels = c("Mean", "Maximum", "Minimum")) +
                 scale_x_continuous(n.breaks = 8))
 
-ggsave("Figures/diss_figures/climate_plot_year.png", plot = temp_year, 
+ggsave("Figures/climate_plot_year.png", plot = temp_year, 
        width = 6.5, height = 5.5, units = "in")
 
 # adding the mixed effects model to the plot 
