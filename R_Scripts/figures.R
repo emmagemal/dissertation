@@ -4,6 +4,7 @@
 
 ### Library ----
 library(tidyverse)
+library(lme4)
 
 ### Temperature Response Curves ----
 avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
@@ -206,13 +207,42 @@ temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, 
 pred.mm <- ggpredict(temp_month_season, terms = c("year"))  
 
 # plotting the predictions 
-(ggplot(pred.mm) + 
-    geom_line(aes(x = x, y = predicted)) +          # slope
-    geom_ribbon(aes(x = x, ymin = predicted - std.error, ymax = predicted + std.error), 
-                fill = "lightgrey", alpha = 0.5) +  # error band
-    geom_point(size = 2.5, data = sum_year_long, aes(x = year, y = temp, 
-                                              color = type, shape = type)))
-    
+(temp_year_model <- ggplot(pred.mm) + 
+                      geom_vline(xintercept = minor, color = "grey92") +                   
+                      geom_line(aes(x = x, y = predicted), color = "#004452") +   # slope
+                      geom_ribbon(aes(x = x, ymin = predicted - std.error, 
+                                      ymax = predicted + std.error), 
+                                  fill = "lightgrey", alpha = 0.5) +  # error band
+                      geom_point(size = 2.5, data = sum_year_long, aes(x = year, y = temp, 
+                                 color = type, shape = type)) +
+                      geom_line(data = sum_year_long, aes(x = year, y = temp, 
+                                                          color = type, group = type)) +
+                      geom_hline(yintercept = 0, linetype = "dashed") +
+                      ylab(label = "Temperature (˚C)") +
+                      xlab(label = "Year") +
+                      theme_bw() +
+                      theme(axis.text.x = element_text(angle = 60, hjust = 1),
+                            panel.grid.minor = element_blank(),
+                            panel.grid.major.x = element_blank(),
+                            legend.title = element_blank(),
+                            axis.title.x = 
+                              element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                            axis.title.y = 
+                              element_text(margin = margin(t = 0, r = 10, b = 0, l = 0))) +
+                      theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                      scale_color_manual(values = c("#004452", "#B5BA4F", "#FF6D33"),
+                                         labels = c("Mean", "Maximum", "Minimum")) + 
+                      scale_shape_discrete(labels = c("Mean", "Maximum", "Minimum")) +
+                      scale_x_continuous(n.breaks = 8))
+
+ggsave("Figures/climate_plot_model.png", plot = temp_year_model, 
+       width = 6.5, height = 5.5, units = "in")
+
+
+
+
+
+# --------------------------------------------# 
 
 ### Old Code for Data Creation ----
 #### creating c_gain_long.csv
