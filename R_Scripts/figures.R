@@ -5,6 +5,8 @@
 ### Library ----
 library(tidyverse)
 library(lme4)
+library(ggeffects)
+library(ggpubr)
 
 ### Temperature Response Curves ----
 avgdata <- read.csv("Data/np_dr_averages.csv", header = TRUE)
@@ -212,8 +214,7 @@ minor <- seq(2004, 2016, by = 4)   # making minor gridlines for the plot
 ggsave("Figures/climate_plot_year.png", plot = temp_year, 
        width = 6.5, height = 5.5, units = "in")
 
-## adding the mixed effects model to the plot 
-library(ggeffects)
+# adding the mixed effects model to the plot 
 temp_month_season <- lmer(temp ~ year + (1|month) + (1|season), data = climate, REML = F)
 
 # creating model predictions 
@@ -251,12 +252,10 @@ pred.mm <- ggpredict(temp_month_season, terms = c("year"))
 ggsave("Figures/climate_plot_model.png", plot = temp_year_model, 
        width = 6.5, height = 5.5, units = "in")
 
+## For the appendix
 # plotting the average, minimum and maximum temperature over time (by season) 
-minor <- seq(2004, 2016, by = 4)   # making minor gridlines for the plot 
-
 (temp_season <- ggplot(sum_season_long, aes(x = season, y = temp, 
                                         color = type, shape = type)) +
-                  geom_vline(xintercept = minor, color = "grey92") +                 
                   geom_point(size = 2.5) +  
                   geom_line(aes(group = type)) +
                   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -278,6 +277,131 @@ minor <- seq(2004, 2016, by = 4)   # making minor gridlines for the plot
 
 ggsave("Figures/climate_plot_season.png", plot = temp_season, 
        width = 6.5, height = 5.5, units = "in")
+
+# creating a faceted plot of temperature over time
+str(climate)
+climate$date_time <- as.POSIXct(climate$date_time)
+
+(temp_facet <- ggplot(climate, aes(x = date_time, y = temp, fill = season)) +   
+                  geom_line(aes(color = season)) +
+                  facet_wrap(vars(season), ncol = 3, scales = "free_x") +
+                  ylab(label = "Temperature (˚C)") +
+                  xlab(label = "Date") +
+                  theme_bw() +
+                  theme(legend.position = "none",
+                        axis.title.x = 
+                          element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                        axis.title.y = 
+                          element_text(margin = margin(t = 0, r = 10, b = 0, l = 0))) +
+                  theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                  scale_x_datetime(date_labels = "%b", date_breaks = "1 month") +
+                  scale_color_manual(values = c("#DADDA7", "#D1D491", "#C8CC7B", "#BEC365", 
+                                                "#B5BA4F", "#A2A741", "#8B8F38", "#74772E", 
+                                                "#5D5F25", "#45481C", "#2E3013", "#171809", 
+                                                "#000000")))
+
+ggsave("Figures/climate_facet.png", plot = temp_facet, 
+       width = 7, height = 7, units = "in")
+
+### Microclimate Data ----
+microlog <- read.csv("Data/microclimate.csv")
+
+str(microlog)
+microlog <- microlog %>% 
+              dplyr::select("Date", "Time", "Inside.temp", "Outside.temp", "ground.temp",
+                            "inside.humidity", "Outside.humidity") %>% 
+              rename(Ground.temp = ground.temp,
+                     Inside.humidity = inside.humidity) %>% 
+              unite("date_time", c("Date", "Time"), remove = FALSE, sep = " ") %>% 
+              mutate(date_time = as.POSIXct(date_time, format = "%d/%m/%Y %H:%M")) %>% 
+              mutate(Inside.temp = as.numeric(Inside.temp)) %>% 
+              mutate(Outside.temp = as.numeric(Outside.temp)) %>% 
+              mutate(Ground.temp = as.numeric(Ground.temp)) %>% 
+              mutate(Inside.humidity = as.numeric(Inside.humidity)) %>% 
+              mutate(Outside.humidity = as.numeric(Outside.humidity))
+
+# plotting outside temperatures
+(outside_temp <- ggplot(microlog, aes(x = date_time, y = Outside.temp)) +
+                    geom_line(size = 0.7, color = "#FF6D33") +
+                    ylab(label = "Temperature (˚C)") +
+                    xlab(label = "Date") +
+                    theme_bw() +
+                    theme(axis.title.x = 
+                            element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                          axis.title.y = 
+                            element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                          panel.grid.minor = element_blank()) +
+                    theme(plot.margin = unit(c(1, 1, 1, 1), "cm")))
+
+# plotting ground temperatures
+(ground_temp <- ggplot(microlog, aes(x = date_time, y = Ground.temp)) +
+                  geom_line(size = 0.7, color = "#E64100") +
+                  ylab(label = "Temperature (˚C)") +
+                  xlab(label = "Date") +
+                  theme_bw() +
+                  theme(axis.title.x = 
+                          element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                        axis.title.y = 
+                          element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                        panel.grid.minor = element_blank()) +
+                  theme(plot.margin = unit(c(1, 1, 1, 1), "cm")))
+
+# plotting inside temperatures
+(inside_temp <- ggplot(microlog, aes(x = date_time, y = Inside.temp)) +
+                  geom_line(size = 0.7, color = "#FF9166") +
+                  ylab(label = "Temperature (˚C)") +
+                  xlab(label = "Date") +
+                  theme_bw() +
+                  theme(axis.title.x = 
+                          element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                        axis.title.y = 
+                          element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                        panel.grid.minor = element_blank()) +
+                  theme(plot.margin = unit(c(1, 1, 1, 1), "cm")))
+
+# plotting outside relative humidity (DON'T INCLUDE)
+(outside_rh <- ggplot(microlog, aes(x = date_time, y = Outside.humidity)) +
+                  geom_line())
+
+# plotting inside relative humidity 
+(inside_rh <- ggplot(microlog, aes(x = date_time, y = Inside.humidity)) +
+                  geom_line())
+
+panel <- ggarrange(inside_temp, outside_temp, ground_temp, labels = c("A", "B", "C"),
+                   nrow = 1)
+panel2 <- ggarrange(inside_temp, outside_temp, ground_temp, labels = c("A", "B", "C"),
+                    nrow = 2, ncol = 2)
+
+ggsave("Figures/microclimate_panel_tall.png", plot = panel2, width = 8, height = 8, units = "in")
+
+
+### Water Content Curves ----
+water <- read.csv("Data/water_content_full.csv")
+str(water)
+water <- water %>% 
+            pivot_longer(cols = c(1:2),
+                         names_to = "type",
+                         names_prefix = "CO2_",
+                         values_to = "CO2")
+                         
+(water_curves <- ggplot(water, aes(x = weight, y = CO2)) +
+                    geom_point(aes(color = type, shape = type), size = 2.5) +
+                    geom_line(aes(color = type), size = 0.5) +
+                    facet_wrap(~treatment_type, scales = "free") +
+                    ylab(label = expression(paste("\u0394", "CO"[2], " (rel. ppm)"))) +
+                    xlab(label = "Weight (g)") +
+                    theme_bw() +
+                    theme(axis.title.x = 
+                            element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                          axis.title.y = 
+                            element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                          panel.grid.minor = element_blank()) +
+                    theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                    scale_color_manual(values = c("#FF6D33", "#7A292A"),
+                                       name = "Process") +
+                    scale_shape_discrete(name = "Process"))
+
+ggsave("Figures/water_content.png", plot = water_curves, width = 9, height = 6, units = "in")
 
 
 

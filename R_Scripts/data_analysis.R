@@ -768,8 +768,7 @@ t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significa
 # using the means of the calculated LCPcuv, control = 109.25 and treatment = 25.15 
 # (different to pre-averaged data, a lot lower)
 ### Optimal Water Content Ranges ----
-# potentially change the heading name
-
+# ADD THE CODE FOR INTERSECTIONS
 
 
 ### Models for Climate (Temperature) ----
