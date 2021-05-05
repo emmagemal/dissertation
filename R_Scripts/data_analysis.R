@@ -768,7 +768,63 @@ t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significa
 # using the means of the calculated LCPcuv, control = 109.25 and treatment = 25.15 
 # (different to pre-averaged data, a lot lower)
 ### Optimal Water Content Ranges ----
-# ADD THE CODE FOR INTERSECTIONS
+water <- read.csv("Data/water_content_full.csv")
+
+water_long <- water %>% 
+                pivot_longer(cols = c(1:2),
+                             names_to = "type",
+                             names_prefix = "CO2_",
+                             values_to = "CO2") %>% 
+                filter(type == "NP")
+
+summary(water_long$CO2[water_long$treatment_type == "control"])  # max control = 6.700
+summary(water_long$CO2[water_long$treatment_type == "treatment"])  # max treatment = 2.400
+
+6.7*0.9   # control = 6.03
+2.4*0.9   # treatment = 2.16
+
+(water_curves <- ggplot(water_long, aes(x = weight, y = CO2)) +
+                    geom_point(aes(color = type, shape = type), size = 2.5) +
+                    geom_line(aes(color = type), size = 0.5) +
+                    facet_wrap(~treatment_type, scales = "free") +
+                    ylab(label = expression(paste("\u0394", "CO"[2], " (rel. ppm)"))) +
+                    xlab(label = "Weight (g)") +
+                    theme_bw() +
+                    theme(axis.title.x = 
+                            element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+                          axis.title.y = 
+                            element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+                          panel.grid.minor = element_blank()) +
+                    theme(plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+                    scale_color_manual(values = "#7A292A",
+                                       name = "Process") +
+                    scale_shape_discrete(name = "Process"))
+
+hline_water <- data.frame(z = c(6.7, 2.4), treatment_type = factor(c("control", "treatment")))
+
+(water_curves <- water_curves + geom_hline(data = hline_water, aes(yintercept = z)))
+
+## Determining the control intersection points
+c_a <- c(12.8084, 1.6)
+c_b <- c(10.8021, 6.7)
+c_c <- c(10.5568, 4.7)
+control_y <- c(10, 6.03)
+control_y2 <- c(14, 6.03)
+
+line.line.intersection(c_a, c_b, control_y, control_y2, interior.only = FALSE)    # x = 11.066 g
+line.line.intersection(c_b, c_c, control_y, control_y2, interior.only = FALSE)    # x = 10.719 g
+
+## Determining the treatment intersection points
+t_a <- c(15.6690, -6.3)
+t_b <- c(13.1344, 2.4)
+t_c <- c(12.7396, 0.1)
+treatment_y <- c(12, 2.16)
+treatment_y2 <- c(16, 2.16)
+
+line.line.intersection(t_a, t_b, treatment_y, treatment_y2, 
+                       interior.only = FALSE)                 # x = 13.204 g
+line.line.intersection(t_b, t_c, treatment_y, treatment_y2, 
+                       interior.only = FALSE)                 # x = 13.093 g
 
 
 ### Models for Climate (Temperature) ----
