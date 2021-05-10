@@ -1,5 +1,5 @@
 # Repository for EES Dissertation 2021
-All scripts and data to produce the figures and data analysis used for the University of Edinburgh dissertation "Variable Thermal Acclimation Responses of Net Photosynthesis and Respiration in moss *Bryum argenteum var. muticum"*.
+All scripts and data to produce the figures and data analysis used for the University of Edinburgh dissertation "Variable thermal acclimation responses of net photosynthesis and respiration in moss *Bryum argenteum var. muticum"*.
 
 ----
 
