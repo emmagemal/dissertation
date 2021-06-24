@@ -5,7 +5,6 @@
 ### Library ----
 library(tidyverse)
 library(retistruct)
-library(plotrix)
 library(lme4)
 library(lmerTest)
 library(lmtest)
@@ -472,14 +471,6 @@ maxNP_stats <- maxNP_stats %>%
 ## Testing significance of maximum NP rates 
 t.test(maxNP ~ treatment_type, data = maxNP_stats)
 
-## Determining SE of the average
-maxNP_sum <- maxNP_stats %>% 
-                group_by(treatment_type) %>%
-                mutate(se = std.error(maxNP)) %>% 
-                summarise(avg = mean(maxNP),
-                          se = mean(se),
-                          sd = sd(maxNP))
-
 
 ### Models for NP ----
 ## Checking data assumptions  
@@ -576,7 +567,7 @@ anova(mixed_sample_dr)   # temp: F = 280.40, p = <2e-16
 # treatment_type is not significant, temp is significant 
 
 ### Average Light Response Curve Calculations ----
-light <- read.csv("Data/full_lightresponses_revised.csv")
+light <- read.csv("Data/full_light_responses.csv")
 
 light_avg <- light %>% 
                 group_by(Lcuv, treatment_type) %>% 
@@ -721,14 +712,6 @@ t.test(LSPcuv ~ treatment_type, data = light_sum)  # p = 0.042 (significant diff
 # using the means of the calculated LSPcuv, control = 835 and treatment = 316 
 # (different to pre-averaged data)
 
-## Determining SE of the average
-light_sum_lsp <- light_sum %>% 
-                    group_by(treatment_type) %>%
-                    mutate(se = std.error(LSPcuv)) %>% 
-                    summarise(avg = mean(LSPcuv),
-                              se = mean(se),
-                              sd = sd(LSPcuv))
-
 
 ### Light Response Curve LCP Statistics ----
 # visualizing the light compensation point for all samples
@@ -739,15 +722,6 @@ light_sum_lsp <- light_sum %>%
                            geom_hline(yintercept = 0))
 
 ## Determining the intersection points for LCP
-# C1 intersection point
-c1_1b <- c(100, -1.25)
-c1_2b <- c(200, 1.39)
-control_y_c1b <- c(100, 0)
-control_y2_c1b <- c(200, 0)
-
-line.line.intersection(c2_1b, c2_2b, control_y_c2b, control_y2_c2b, 
-                       interior.only = FALSE)               # x = 147.3 µE m^-2 s^-1
-
 # C2 intersection point
 c2_1b <- c(100, -1.25)
 c2_2b <- c(200, 1.39)
@@ -790,14 +764,6 @@ light_sum_lcp$LCPcuv <- c(147.3, 71.2, 22.4, 27.9)
 t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significantly different)
 # using the means of the calculated LCPcuv, control = 109.25 and treatment = 25.15 
 # (different to pre-averaged data, a lot lower)
-
-## Determining SE of the average
-light_sum_lcp <- light_sum %>% 
-  group_by(treatment_type) %>%
-  mutate(se = std.error(LCPcuv)) %>% 
-  summarise(avg = mean(LCPcuv),
-            se = mean(se),
-            sd = sd(LCPcuv))
 
 
 ### Optimal Water Content Ranges ----
