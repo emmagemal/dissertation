@@ -5,6 +5,7 @@
 ### Library ----
 library(tidyverse)
 library(retistruct)
+library(plotrix)
 library(lme4)
 library(lmerTest)
 library(lmtest)
@@ -432,6 +433,15 @@ negNP_stats <- negNP_stats %>%
 ## Testing significance of optimum temperature ranges 
 t.test(negNP ~ treatment_type, data = negNP_stats)
 
+## Determining SE of the average
+negNP_sum <- negNP_stats %>% 
+                group_by(treatment_type) %>%
+                mutate(se = std.error(negNP)) %>% 
+                summarise(avg = mean(negNP),
+                          se = mean(se),
+                          sd = sd(negNP))
+
+
 ### Maximum NP Statistics ----
 # maximum net photosynthesis for each control sample 
 summary(np_full_control$np_DW[np_full_control$sample == "C1"])  # max C1 = 2.150
@@ -461,6 +471,15 @@ maxNP_stats <- maxNP_stats %>%
 
 ## Testing significance of maximum NP rates 
 t.test(maxNP ~ treatment_type, data = maxNP_stats)
+
+## Determining SE of the average
+maxNP_sum <- maxNP_stats %>% 
+                group_by(treatment_type) %>%
+                mutate(se = std.error(maxNP)) %>% 
+                summarise(avg = mean(maxNP),
+                          se = mean(se),
+                          sd = sd(maxNP))
+
 
 ### Models for NP ----
 ## Checking data assumptions  
@@ -557,7 +576,7 @@ anova(mixed_sample_dr)   # temp: F = 280.40, p = <2e-16
 # treatment_type is not significant, temp is significant 
 
 ### Average Light Response Curve Calculations ----
-light <- read.csv("Data/full_light_responses.csv")
+light <- read.csv("Data/full_lightresponses_revised.csv")
 
 light_avg <- light %>% 
                 group_by(Lcuv, treatment_type) %>% 
@@ -630,13 +649,6 @@ light_sum <- light %>%
                 summarize(maxCO2 = max(CO2)) %>% 
                 mutate(LSPx90 = 0.9*maxCO2)
 
-# fixing negative values so 90% of the LSP is correct
--9.70*1.1   # -10.67 
--15.00*1.1  # -16.5
-
-light_sum$LSPx90[light_sum$maxCO2 == -9.70] <- -10.67
-light_sum$LSPx90[light_sum$maxCO2 == -15.00] <- -16.5
-
 ## Determining the intersection points for 90% LSP
 # visualizing the 90% light saturation points for all samples
 (light_plot_facet <- ggplot(light, aes(x = Lcuv, y = CO2)) +
@@ -705,8 +717,17 @@ light_sum$treatment_type <- c("control", "control", "control",
 
 ## T-Test for LSP
 t.test(LSPcuv ~ treatment_type, data = light_sum)  # p = 0.042 (significant difference!)
+                                                   # t = 3.80
 # using the means of the calculated LSPcuv, control = 835 and treatment = 316 
-  # (different to pre-averaged data)
+# (different to pre-averaged data)
+
+## Determining SE of the average
+light_sum_lsp <- light_sum %>% 
+                    group_by(treatment_type) %>%
+                    mutate(se = std.error(LSPcuv)) %>% 
+                    summarise(avg = mean(LSPcuv),
+                              se = mean(se),
+                              sd = sd(LSPcuv))
 
 
 ### Light Response Curve LCP Statistics ----
@@ -718,12 +739,14 @@ t.test(LSPcuv ~ treatment_type, data = light_sum)  # p = 0.042 (significant diff
                            geom_hline(yintercept = 0))
 
 ## Determining the intersection points for LCP
-# C1 and T1 have no light compensation point (are never >0)
-light_sum_lcp <- light_sum %>% 
-                    filter(sample == "C2" |
-                           sample == "C3" | 
-                           sample == "T2" |
-                           sample == "T3")
+# C1 intersection point
+c1_1b <- c(100, -1.25)
+c1_2b <- c(200, 1.39)
+control_y_c1b <- c(100, 0)
+control_y2_c1b <- c(200, 0)
+
+line.line.intersection(c2_1b, c2_2b, control_y_c2b, control_y2_c2b, 
+                       interior.only = FALSE)               # x = 147.3 µE m^-2 s^-1
 
 # C2 intersection point
 c2_1b <- c(100, -1.25)
@@ -767,6 +790,16 @@ light_sum_lcp$LCPcuv <- c(147.3, 71.2, 22.4, 27.9)
 t.test(LCPcuv ~ treatment_type, data = light_sum_lcp)  # p = 0.27 (NOT significantly different)
 # using the means of the calculated LCPcuv, control = 109.25 and treatment = 25.15 
 # (different to pre-averaged data, a lot lower)
+
+## Determining SE of the average
+light_sum_lcp <- light_sum %>% 
+  group_by(treatment_type) %>%
+  mutate(se = std.error(LCPcuv)) %>% 
+  summarise(avg = mean(LCPcuv),
+            se = mean(se),
+            sd = sd(LCPcuv))
+
+
 ### Optimal Water Content Ranges ----
 water <- read.csv("Data/water_content_full.csv")
 
