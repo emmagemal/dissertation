@@ -18,7 +18,7 @@ The final figures produced and used in the dissertation can be found [here](http
 
 ----
 
-# Coding Etiquette
+## Coding Etiquette
 
 The following rules should be upheld at all times when coding or working in this repo:
 1. Include informative comments throughout your code, using the hashtag (`#`) symbol
